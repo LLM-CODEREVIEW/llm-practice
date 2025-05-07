@@ -61,13 +61,19 @@ def add_pr_comment(repo_name, pr_number, comment_body):
     pull_request.create_issue_comment(comment_body)
     print(f"PR #{pr_number}에 코멘트 추가됨")
 
+
 def add_review_comments(repo_name, pr_number, comments, review_body="코드 리뷰 결과", event="COMMENT"):
     """PR에 리뷰 코멘트 추가"""
+    repo = get_repo(repo_name)
     pull_request = get_pull_request(repo_name, pr_number)
+
+    # 커밋 객체 가져오기
+    commit_sha = pull_request.head.sha
+    commit = repo.get_commit(commit_sha)
 
     # 이벤트 타입: 'APPROVE', 'REQUEST_CHANGES', 'COMMENT'
     review = pull_request.create_review(
-        commit=pull_request.head.sha,
+        commit=commit,  # SHA 문자열이 아닌 Commit 객체 전달
         body=review_body,
         event=event,
         comments=comments
