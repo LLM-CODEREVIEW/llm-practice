@@ -67,7 +67,7 @@ def add_review_comments(repo_name, pr_number, comments, review_body="코드 리�
 
     # 이벤트 타입: 'APPROVE', 'REQUEST_CHANGES', 'COMMENT'
     review = pull_request.create_review(
-        commit_id=pull_request.head.sha,
+        commit=pull_request.head.sha,
         body=review_body,
         event=event,
         comments=comments
