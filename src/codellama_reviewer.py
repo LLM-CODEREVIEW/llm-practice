@@ -169,4 +169,71 @@ Proposed Solution: Fix the bug by doing X
 
         except Exception as e:
             logger.error(f"코드 리뷰 중 오류 발생: {str(e)}")
+            raise
+
+    def post_review(self, pr_number: str, summary: str, line_comments: List[Dict[str, Any]]) -> None:
+        """리뷰 결과를 GitHub PR에 포스팅합니다."""
+        try:
+            logger.debug(f"[DEBUG] post_review 진입: summary={summary}")
+            logger.debug(f"[DEBUG] 전체 line_comments: {line_comments}")
+            
+            review_comments = []
+            for comment in line_comments:
+                try:
+                    logger.debug(f"[DEBUG] 원본 comment['line']: {comment['line']}")
+                    logger.debug(f"[DEBUG] comment['file']: {comment['file']}")
+                    
+                    # 파일의 patch 가져오기
+                    file_patch = self._get_file_patch(pr_number, comment['file'])
+                    if not file_patch:
+                        logger.warning(f"파일 patch를 찾을 수 없음: {comment['file']}")
+                        continue
+                    
+                    logger.debug(f"[DEBUG] patch 내용 (앞 20줄):\n{file_patch[:1000]}")
+                    
+                    # 라인 번호를 position으로 변환
+                    line_to_position = self._create_line_to_position_mapping(file_patch)
+                    logger.debug(f"[DEBUG] line_to_position 매핑: {line_to_position}")
+                    
+                    # 라인 번호 파싱
+                    lines = self._parse_line_numbers(comment['line'])
+                    logger.debug(f"[DEBUG] 파싱된 라인 리스트: {lines}")
+                    
+                    for line in lines:
+                        if line in line_to_position:
+                            position = line_to_position[line]
+                            logger.debug(f"[DEBUG] 파일: {comment['file']}, 라인: {line}, position: {position}")
+                            
+                            # 코멘트 생성
+                            review_comment = {
+                                'path': comment['file'],
+                                'position': position,
+                                'body': comment['body']  # 여기서 body를 사용
+                            }
+                            review_comments.append(review_comment)
+                        else:
+                            logger.warning(f"라인 {line}에 대한 position을 찾을 수 없음")
+                
+                except Exception as e:
+                    logger.warning(f"Error creating comment: {str(e)}")
+                    continue
+            
+            logger.debug(f"[DEBUG] 최종 review_comments 전체: {review_comments}")
+            
+            # 리뷰 생성
+            logger.info(f"[DEBUG] create_review 파라미터: summary={summary}, comments={review_comments}")
+            self.repo.create_pull_request_review(
+                pr_number,
+                body=summary,
+                event='COMMENT',
+                comments=review_comments
+            )
+            
+            if not review_comments:
+                logger.info("Posted summary comment only (no line comments)")
+            else:
+                logger.info(f"Posted {len(review_comments)} line comments")
+                
+        except Exception as e:
+            logger.error(f"리뷰 포스팅 중 오류 발생: {str(e)}")
             raise 
