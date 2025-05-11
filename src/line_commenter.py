@@ -24,9 +24,12 @@ class LineCommenter:
         issues = []
         current_issue = {}
         
-        # 심각도와 카테고리 추출을 위한 정규식
+        # 이슈 패턴
         severity_pattern = r"심각도:\s*(HIGH|MEDIUM|LOW)"
         category_pattern = r"카테고리:\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)"
+        description_pattern = r"설명:\s*(.*?)(?=\n\n|$)"
+        suggestion_pattern = r"제안:\s*(.*?)(?=\n\n|$)"
+        line_pattern = r"라인:\s*(\d+)"
         
         for line in review_text.split('\n'):
             # 심각도 매칭
@@ -38,21 +41,35 @@ class LineCommenter:
                     'severity': severity_match.group(1),
                     'category': 'OTHER',
                     'description': '',
-                    'suggestion': ''
+                    'suggestion': '',
+                    'line': None
                 }
                 continue
             
-            # 카테고리 매칭
-            category_match = re.search(category_pattern, line, re.IGNORECASE)
-            if category_match:
-                current_issue['category'] = category_match.group(1)
-                continue
-            
-            # 설명과 제안 추출
-            if line.startswith('설명:'):
-                current_issue['description'] = line[3:].strip()
-            elif line.startswith('제안:'):
-                current_issue['suggestion'] = line[3:].strip()
+            if current_issue:
+                # 라인 번호 매칭
+                line_match = re.search(line_pattern, line)
+                if line_match:
+                    current_issue['line'] = int(line_match.group(1))
+                    continue
+                
+                # 카테고리 매칭
+                category_match = re.search(category_pattern, line, re.IGNORECASE)
+                if category_match:
+                    current_issue['category'] = category_match.group(1)
+                    continue
+                
+                # 설명 매칭
+                description_match = re.search(description_pattern, line)
+                if description_match:
+                    current_issue['description'] = description_match.group(1)
+                    continue
+                
+                # 제안 매칭
+                suggestion_match = re.search(suggestion_pattern, line)
+                if suggestion_match:
+                    current_issue['suggestion'] = suggestion_match.group(1)
+                    continue
         
         if current_issue:
             issues.append(current_issue)
@@ -80,28 +97,29 @@ class LineCommenter:
         
         return comment
 
-    def generate_comments(self, review_results: Dict[str, Any], pr_extractor: PRExtractor) -> List[Dict[str, Any]]:
+    def generate_comments(self, review_results: Dict[str, str], pr_extractor: PRExtractor) -> List[Dict[str, Any]]:
         """리뷰 결과를 기반으로 라인별 코멘트를 생성합니다."""
         comments = []
         
         try:
-            for review in review_results.get('reviews', []):
-                file_name = review['file']
-                review_text = review['review']
-                
+            for file_name, review_text in review_results.items():
                 # 리뷰 텍스트 파싱
                 issues = self._parse_review(review_text)
                 
                 for issue in issues:
+                    # 라인 번호가 없는 경우 건너뛰기
+                    if not issue.get('line'):
+                        continue
+                    
                     # 파일 컨텍스트 가져오기
-                    context = pr_extractor.get_file_context(file_name, 1)  # 첫 번째 라인부터 시작
+                    context = pr_extractor.get_file_context(file_name, issue['line'])
                     
                     # 코멘트 생성
                     comment = self._format_comment(issue, context)
                     
                     comments.append({
                         'file': file_name,
-                        'line': 1,  # 첫 번째 라인에 코멘트 추가
+                        'line': issue['line'],
                         'body': comment,
                         'severity': issue['severity'],
                         'category': issue['category']
