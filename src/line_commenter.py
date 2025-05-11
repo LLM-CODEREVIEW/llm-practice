@@ -27,12 +27,12 @@ class LineCommenter:
         if isinstance(review_text, list):
             review_text = '\n'.join(review_text)
 
-        # 정규식 패턴 개선
-        line_pattern = r"Line:\s*([\d,\- ]+)"
-        severity_pattern = r"Severity:\s*(HIGH|MEDIUM|LOW)"
-        category_pattern = r"Category:\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)"
-        description_pattern = r"Description:\s*(.*?)(?=\n\n|$)"
-        suggestion_pattern = r"(Proposal|Proposed solution|제안):\s*(.*?)(?=\n\n|$)"
+        # 정규식 패턴 개선 (영어/한글 모두 robust하게)
+        line_pattern = r"(?:Line|라인):\s*([\d,\- ]+)"
+        severity_pattern = r"(?:Severity|심각도):\s*(HIGH|MEDIUM|LOW)"
+        category_pattern = r"(?:Category|카테고리):\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)"
+        description_pattern = r"(?:Description|설명):\s*(.*?)(?=\n(?:Line|라인):|\Z)"
+        suggestion_pattern = r"(?:Proposed Solution|Proposal|Proposed solution|제안):\s*(.*?)(?=\n(?:Line|라인):|\Z)"
 
         # 각 이슈 블록 추출
         issue_blocks = re.split(r"(?=^라인:|^Line:)", review_text, flags=re.MULTILINE)
@@ -40,13 +40,10 @@ class LineCommenter:
         for block in issue_blocks:
             if not block.strip():
                 continue
-
             line_match = re.search(line_pattern, block)
             if not line_match:
                 logger.warning(f"[DEBUG] block에서 라인 파싱 실패: {block}")
                 continue
-
-            # 여러 라인/구간 파싱
             line_field = line_match.group(1)
             line_nums = []
             for part in line_field.split(','):
@@ -59,12 +56,10 @@ class LineCommenter:
                     m = re.match(r'^(\d+)$', part)
                     if m:
                         line_nums.append(int(m.group(1)))
-
             severity_match = re.search(severity_pattern, block)
             category_match = re.search(category_pattern, block)
-            description_match = re.search(description_pattern, block)
-            suggestion_match = re.search(suggestion_pattern, block)
-
+            description_match = re.search(description_pattern, block, re.DOTALL)
+            suggestion_match = re.search(suggestion_pattern, block, re.DOTALL)
             if severity_match and category_match and description_match:
                 for line_num in line_nums:
                     issue = {
@@ -72,7 +67,7 @@ class LineCommenter:
                         'severity': severity_match.group(1),
                         'category': category_match.group(1),
                         'description': description_match.group(1).strip(),
-                        'suggestion': suggestion_match.group(2).strip() if suggestion_match else ""
+                        'suggestion': suggestion_match.group(1).strip() if suggestion_match else ""
                     }
                     issues.append(issue)
 
