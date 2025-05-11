@@ -97,15 +97,17 @@ class ReviewFormatter:
         category_count = defaultdict(int)
         
         for issue in issues:
-            severity_count[issue['severity']] += 1
-            category_count[issue['category']] += 1
+            severity = issue.get('severity', 'OTHER')
+            category = issue.get('category', 'OTHER')
+            severity_count[severity] += 1
+            category_count[category] += 1
         
         # 심각도 요약
         summary += "**심각도별 이슈:**\n"
         for severity in ["HIGH", "MEDIUM", "LOW"]:
             count = severity_count[severity]
             if count > 0:
-                emoji = self.severity_emoji[severity]
+                emoji = self.severity_emoji.get(severity, "ℹ️")
                 summary += f"- {emoji} {severity}: {count}개\n"
         
         # 카테고리 요약
@@ -113,17 +115,21 @@ class ReviewFormatter:
         for category in ["BUG", "PERFORMANCE", "READABILITY", "SECURITY", "OTHER"]:
             count = category_count[category]
             if count > 0:
-                emoji = self.category_emoji[category]
+                emoji = self.category_emoji.get(category, "ℹ️")
                 summary += f"- {emoji} {category}: {count}개\n"
         
         # 상세 이슈
         summary += "\n**상세 이슈:**\n"
         for issue in issues:
-            severity_emoji = self.severity_emoji[issue['severity']]
-            category_emoji = self.category_emoji[issue['category']]
-            summary += f"- {severity_emoji} {category_emoji} {issue.get('description', '')}\n"
-            if issue.get('suggestion'):
-                summary += f"  - 💡 제안: {issue['suggestion']}\n"
+            severity = issue.get('severity', 'OTHER')
+            category = issue.get('category', 'OTHER')
+            severity_emoji = self.severity_emoji.get(severity, "ℹ️")
+            category_emoji = self.category_emoji.get(category, "ℹ️")
+            description = issue.get('description', '설명 없음')
+            summary += f"- {severity_emoji} {category_emoji} {description}\n"
+            suggestion = issue.get('suggestion')
+            if suggestion:
+                summary += f"  - 💡 제안: {suggestion}\n"
         
         return summary
 
@@ -144,8 +150,10 @@ class ReviewFormatter:
             category_count = defaultdict(int)
             
             for issue in all_issues:
-                severity_count[issue['severity']] += 1
-                category_count[issue['category']] += 1
+                severity = issue.get('severity', 'OTHER')
+                category = issue.get('category', 'OTHER')
+                severity_count[severity] += 1
+                category_count[category] += 1
             
             # 전체 요약 생성
             summary = "# 🔍 코드 리뷰 결과\n\n"
@@ -156,7 +164,7 @@ class ReviewFormatter:
             for severity in ["HIGH", "MEDIUM", "LOW"]:
                 count = severity_count[severity]
                 if count > 0:
-                    emoji = self.severity_emoji[severity]
+                    emoji = self.severity_emoji.get(severity, "ℹ️")
                     summary += f"- {emoji} {severity}: {count}개\n"
             
             # 카테고리별 요약
@@ -164,7 +172,7 @@ class ReviewFormatter:
             for category in ["BUG", "PERFORMANCE", "READABILITY", "SECURITY", "OTHER"]:
                 count = category_count[category]
                 if count > 0:
-                    emoji = self.category_emoji[category]
+                    emoji = self.category_emoji.get(category, "ℹ️")
                     summary += f"- {emoji} {category}: {count}개\n"
             
             # 파일별 요약
