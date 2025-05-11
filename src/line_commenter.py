@@ -147,4 +147,24 @@ class LineCommenter:
 
         except Exception as e:
             logger.error(f"Error generating comments: {str(e)}")
-            raise 
+            raise
+
+def make_llm_prompt_with_patch(patch: str) -> str:
+    return f"""
+아래는 GitHub Pull Request의 diff patch입니다.
+
+- patch의 각 줄에서 +로 시작하는 줄(즉, 실제로 변경/추가된 코드)에만 코멘트를 달아주세요.
+- 전체 코드를 이해하고, 변경된 줄(+)에만 코멘트가 필요하다고 판단되는 경우에만 코멘트를 작성하세요.
+- 각 코멘트는 아래 형식으로 작성하세요:
+
+Line: [patch에서 +로 시작하는 줄의 실제 라인 번호]
+Severity: [HIGH|MEDIUM|LOW]
+Category: [BUG|PERFORMANCE|READABILITY|SECURITY|OTHER]
+Description: [문제 설명]
+Proposed Solution: [개선 방안]
+
+아래는 diff patch입니다:
+{patch}
+
+리뷰 결과:
+""" 
