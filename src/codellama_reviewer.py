@@ -37,6 +37,34 @@ class CodeLlamaReviewer:
 
 리뷰 결과:"""
 
+    def _parse_review_result(self, review_text: str) -> List[Dict[str, Any]]:
+        """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다."""
+        comments = []
+        current_comment = {}
+        
+        for line in review_text.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+                
+            if line.startswith('라인:'):
+                if current_comment:
+                    comments.append(current_comment)
+                current_comment = {'line': int(line.split(':')[1].strip())}
+            elif line.startswith('심각도:'):
+                current_comment['severity'] = line.split(':')[1].strip()
+            elif line.startswith('카테고리:'):
+                current_comment['category'] = line.split(':')[1].strip()
+            elif line.startswith('설명:'):
+                current_comment['description'] = line.split(':')[1].strip()
+            elif line.startswith('제안:'):
+                current_comment['proposal'] = line.split(':')[1].strip()
+                
+        if current_comment:
+            comments.append(current_comment)
+            
+        return comments
+
     def _review_single_file(self, file_data: Dict[str, Any]) -> Dict[str, Any]:
         """단일 파일 리뷰 수행"""
         filename = file_data.get('filename', '')
@@ -67,6 +95,9 @@ class CodeLlamaReviewer:
             result = response.json()
             review_text = result['response']
             
+            # 리뷰 결과 파싱
+            parsed_comments = self._parse_review_result(review_text)
+            
             # 리뷰 결과 로깅
             logger.info(f"파일 {filename} 리뷰 결과:\n{review_text}")
             
@@ -75,7 +106,8 @@ class CodeLlamaReviewer:
             
             return {
                 'file': filename,
-                'review': review_text
+                'review': review_text,
+                'comments': parsed_comments
             }
             
         except Exception as e:

@@ -23,9 +23,6 @@ class GitHubCommenter:
     def post_review(self, summary: str, line_comments: List[Dict[str, Any]]) -> None:
         """리뷰 요약과 라인별 코멘트를 GitHub에 게시합니다."""
         try:
-            # 기존 리뷰 코멘트 확인은 건너뛰기
-            # 사용자 정보 접근 시도하지 않음
-
             # 라인별 코멘트 생성
             review_comments = []
             for comment in line_comments:
@@ -35,11 +32,17 @@ class GitHubCommenter:
                         logger.warning(f"Skipping comment with missing fields: {comment}")
                         continue
 
+                    # 코멘트 본문 생성
+                    body = f"""**심각도**: {comment.get('severity', 'N/A')}
+**카테고리**: {comment.get('category', 'N/A')}
+**설명**: {comment.get('description', 'N/A')}
+**제안**: {comment.get('proposal', 'N/A')}"""
+
                     # 코멘트 형식 생성
                     review_comments.append({
-                        "body": comment['body'],
+                        "body": body,
                         "path": comment['file'],
-                        "line": comment['line'],
+                        "position": comment['line'],
                         "side": "RIGHT"
                     })
 
