@@ -35,7 +35,7 @@ class LineCommenter:
         suggestion_pattern = r"(Proposal|Proposed solution|제안):\s*(.*?)(?=\n\n|$)"
 
         # 각 이슈 블록 추출
-        issue_blocks = re.split(r"(?=Line:\s*[\d,\- ]+)", review_text)
+        issue_blocks = re.split(r"(?=^라인:|^Line:)", review_text, flags=re.MULTILINE)
 
         for block in issue_blocks:
             if not block.strip():
