@@ -77,6 +77,7 @@ class GitHubCommenter:
         """리뷰 요약과 라인별 코멘트를 GitHub에 게시합니다."""
         try:
             review_comments = []
+            logger.debug(f"[DEBUG] 전체 line_comments: {line_comments}")
             file_patches = {f.filename: f.patch for f in self.pr.get_files() if hasattr(f, 'patch') and f.patch}
             for comment in line_comments:
                 try:
