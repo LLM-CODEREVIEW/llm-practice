@@ -33,39 +33,40 @@ class GitHubCommenter:
                         logger.warning(f"Skipping comment with missing fields: {comment}")
                         continue
 
-                    # 코멘트 본문 생성
                     body = f"""**심각도**: {comment.get('severity', 'N/A')}
-**카테고리**: {comment.get('category', 'N/A')}
-**설명**: {comment.get('description', 'N/A')}
-**제안**: {comment.get('proposal', 'N/A')}"""
+                                **카테고리**: {comment.get('category', 'N/A')}
+                                **설명**: {comment.get('description', 'N/A')}
+                                **제안**: {comment.get('proposal', 'N/A')}"""
 
-                    # 코멘트 형식 생성
-                    review_comments.append({
+                    review_comment = {
                         "body": body,
                         "path": comment['file'],
                         "position": comment['line']
-                    })
-
-                    logger.debug(f"Created comment for file {comment['file']} line {comment['line']}")
+                    }
+                    logger.debug(f"[DEBUG] 코멘트 생성: {review_comment}")
+                    review_comments.append(review_comment)
                 except Exception as e:
                     logger.warning(f"Error creating comment: {str(e)}")
                     continue
 
-            # 코멘트 개수 로깅
-            logger.info(f"Submitting {len(review_comments)} comments")
+            logger.debug(f"[DEBUG] review_comments 전체: {review_comments}")
+            logger.info(f"[DEBUG] create_review 파라미터: summary={summary}, comments={review_comments}")
 
             if not review_comments:
                 # 코멘트가 없으면 요약만 게시
                 self.pr.create_issue_comment(summary)
                 logger.info("Posted summary comment only (no line comments)")
             else:
-                # 리뷰 제출
-                self.pr.create_review(
-                    body=summary,
-                    event="COMMENT",
-                    comments=review_comments
-                )
-                logger.info(f"Successfully posted review with {len(review_comments)} comments")
+                try:
+                    self.pr.create_review(
+                        body=summary,
+                        event="COMMENT",
+                        comments=review_comments
+                    )
+                    logger.info(f"[DEBUG] create_review 성공! {len(review_comments)}개 코멘트 제출됨")
+                except Exception as e:
+                    logger.error("[DEBUG] create_review 실패: {}", str(e), exc_info=True)
+                    raise
 
         except Exception as e:
             logger.error("Error posting review: {}", str(e), exc_info=True)
@@ -94,4 +95,4 @@ class GitHubCommenter:
 
         except Exception as e:
             logger.error(f"Error updating review: {str(e)}")
-            raise 
+            raise
