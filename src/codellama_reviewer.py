@@ -25,15 +25,19 @@ class CodeLlamaReviewer:
 
     def _create_prompt(self, code: str) -> str:
         """코드 리뷰를 위한 프롬프트를 생성합니다."""
-        return f"""다음 코드를 리뷰해주세요. 각 이슈에 대해 다음 형식으로 응답해주세요:
+        return f"""아래는 GitHub Pull Request의 diff patch입니다.
 
-라인: [문제가 있는 라인 번호]
-심각도: [HIGH/MEDIUM/LOW]
-카테고리: [BUG/PERFORMANCE/READABILITY/SECURITY/OTHER]
-설명: [구체적인 문제 설명]
-제안: [개선 방안]
+- patch의 각 줄에서 +로 시작하는 줄(즉, 실제로 변경/추가된 코드)에만 코멘트를 달아주세요.
+- 전체 코드를 이해하고, 변경된 줄(+)에만 코멘트가 필요하다고 판단되는 경우에만 코멘트를 작성하세요.
+- 각 코멘트는 아래 형식으로 작성하세요:
 
-코드:
+Line: [patch에서 +로 시작하는 줄의 실제 라인 번호]
+Severity: [HIGH|MEDIUM|LOW]
+Category: [BUG|PERFORMANCE|READABILITY|SECURITY|OTHER]
+Description: [문제 설명]
+Proposed Solution: [개선 방안]
+
+아래는 diff patch입니다:
 {code}
 
 리뷰 결과:"""
