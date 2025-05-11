@@ -23,44 +23,49 @@ class GitHubCommenter:
     def post_review(self, summary: str, line_comments: List[Dict[str, Any]]) -> None:
         """리뷰 요약과 라인별 코멘트를 GitHub에 게시합니다."""
         try:
-            # 기존 리뷰 코멘트 삭제
-            reviews = self.pr.get_reviews()
-            for review in reviews:
-                if review.user.login == self.github.get_user().login:
-                    review.dismiss()
+            # 기존 리뷰 코멘트 확인은 건너뛰기
+            # 사용자 정보 접근 시도하지 않음
 
-            # 새로운 리뷰 생성
+            # 라인별 코멘트 생성
             review_comments = []
             for comment in line_comments:
                 try:
-                    if 'line' not in comment:
-                        logger.warning(f"Skipping comment without line number: {comment}")
+                    # 필수 필드 확인
+                    if 'line' not in comment or 'file' not in comment:
+                        logger.warning(f"Skipping comment with missing fields: {comment}")
                         continue
-                    # diff 기준 position 대신 line/side 사용
+
+                    # 코멘트 형식 생성
                     review_comments.append({
                         "body": comment['body'],
                         "path": comment['file'],
                         "line": comment['line'],
                         "side": "RIGHT"
                     })
+
+                    logger.debug(f"Created comment for file {comment['file']} line {comment['line']}")
                 except Exception as e:
-                    logger.warning(f"Error creating comment for line {comment.get('line')}: {str(e)}")
+                    logger.warning(f"Error creating comment: {str(e)}")
                     continue
 
+            # 코멘트 개수 로깅
+            logger.info(f"Submitting {len(review_comments)} comments")
+
             if not review_comments:
-                logger.warning("No valid comments to post")
-
-            # 리뷰 제출
-            self.pr.create_review(
-                body=summary,
-                event="COMMENT",
-                comments=review_comments
-            )
-
-            logger.info(f"Successfully posted review for PR #{self.pr_number}")
+                # 코멘트가 없으면 요약만 게시
+                self.pr.create_issue_comment(summary)
+                logger.info("Posted summary comment only (no line comments)")
+            else:
+                # 리뷰 제출
+                self.pr.create_review(
+                    body=summary,
+                    event="COMMENT",
+                    comments=review_comments
+                )
+                logger.info(f"Successfully posted review with {len(review_comments)} comments")
 
         except Exception as e:
-            logger.error(f"Error posting review: {str(e)}")
+            logger.error(f"Error posting review: {str(e)}", exc_info=True)
             raise
 
     def update_review(self, summary: str, line_comments: List[Dict[str, Any]]) -> None:
