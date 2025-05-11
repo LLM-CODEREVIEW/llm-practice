@@ -72,12 +72,21 @@ class LineCommenter:
         
         return comment
 
-    def generate_comments(self, review_results: Dict[str, str], pr_extractor: PRExtractor) -> List[Dict[str, Any]]:
+    def generate_comments(self, review_results: Dict[str, Any], pr_extractor: PRExtractor) -> List[Dict[str, Any]]:
         """리뷰 결과를 기반으로 라인별 코멘트를 생성합니다."""
         comments = []
         
         try:
-            for file_name, review_text in review_results.items():
+            # review_results에서 reviews 리스트 가져오기
+            reviews = review_results.get('reviews', [])
+            
+            for review in reviews:
+                file_name = review.get('file')
+                review_text = review.get('review')
+                
+                if not file_name or not review_text:
+                    continue
+                
                 # 리뷰 텍스트 파싱
                 issues = self._parse_review(review_text)
                 
