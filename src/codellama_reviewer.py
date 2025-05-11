@@ -27,9 +27,10 @@ class CodeLlamaReviewer:
         """코드 리뷰를 위한 프롬프트를 생성합니다."""
         return f"""아래는 GitHub Pull Request의 diff patch입니다.
 
-- patch의 각 줄에서 +로 시작하는 줄(즉, 실제로 변경/추가된 코드)에만 코멘트를 달아주세요.
-- 반드시 아래 형식만 지키세요. 아래 형식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 절대 작성하지 마세요.
-- 아래 예시와 완전히 동일한 양식으로만 작성하세요.
+- 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요.
+- 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요.
+- Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요.
+- 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.
 
 Line: [patch에서 +로 시작하는 줄의 실제 라인 번호]
 Severity: [HIGH|MEDIUM|LOW]
@@ -102,6 +103,7 @@ Proposed Solution: Fix the bug by doing X
                 json={
                     "model": "codellama:13b",
                     "prompt": self._create_prompt(content),
+                    "system": "아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.",
                     "stream": False
                 }
             )
