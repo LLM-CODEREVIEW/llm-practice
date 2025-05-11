@@ -3,11 +3,14 @@ import json
 from loguru import logger
 from typing import Dict, List, Any
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 class CodeLlamaReviewer:
     def __init__(self, api_url: str):
         self.api_url = api_url
         self._check_ollama()
+        self.max_workers = 3  # 동시에 처리할 파일 수
 
     def _check_ollama(self):
         """Ollama API 서버 연결 확인"""
@@ -40,46 +43,68 @@ class CodeLlamaReviewer:
 - 제안: [개선 방안]
 """
 
+    def _review_single_file(self, file_data: Dict[str, Any]) -> Dict[str, Any]:
+        """단일 파일 리뷰 수행"""
+        filename = file_data.get('filename', '')
+        content = file_data.get('patch', '')
+        
+        if not content:
+            logger.warning(f"파일 내용이 비어있습니다: {filename}")
+            return None
+
+        logger.info(f"리뷰 중: {filename}")
+        start_time = time.time()
+        
+        try:
+            # Ollama API 호출
+            response = requests.post(
+                f"{self.api_url}/api/generate",
+                json={
+                    "model": "codellama:13b",
+                    "prompt": self._create_prompt(content),
+                    "stream": False
+                }
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"API 호출 실패: {response.status_code}")
+                return None
+
+            result = response.json()
+            review_text = result['response']
+            
+            # 리뷰 결과 로깅
+            logger.info(f"파일 {filename} 리뷰 결과:\n{review_text}")
+            
+            elapsed_time = time.time() - start_time
+            logger.info(f"파일 {filename} 리뷰 완료 (소요시간: {elapsed_time:.2f}초)")
+            
+            return {
+                'file': filename,
+                'review': review_text
+            }
+            
+        except Exception as e:
+            logger.error(f"파일 {filename} 리뷰 중 오류 발생: {str(e)}")
+            return None
+
     def review_code(self, pr_data: dict) -> dict:
         """PR의 코드를 리뷰"""
         try:
             review_results = []
-            
-            # PR 데이터에서 변경된 파일 목록 가져오기
             changed_files = pr_data.get('changed_files', [])
             
-            for file_data in changed_files:
-                filename = file_data.get('filename', '')
-                if not filename.endswith(('.py', '.js', '.java', '.cpp', '.c', '.h', '.hpp')):
-                    continue
-
-                logger.info(f"리뷰 중: {filename}")
+            # 병렬 처리로 파일 리뷰 수행
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                future_to_file = {
+                    executor.submit(self._review_single_file, file_data): file_data
+                    for file_data in changed_files
+                }
                 
-                # 파일 내용 가져오기
-                content = file_data.get('patch', '')
-                if not content:
-                    logger.warning(f"파일 내용이 비어있습니다: {filename}")
-                    continue
-                
-                # Ollama API 호출
-                response = requests.post(
-                    f"{self.api_url}/api/generate",
-                    json={
-                        "model": "codellama:13b",
-                        "prompt": self._create_prompt(content),
-                        "stream": False
-                    }
-                )
-                
-                if response.status_code != 200:
-                    logger.error(f"API 호출 실패: {response.status_code}")
-                    continue
-
-                result = response.json()
-                review_results.append({
-                    'file': filename,
-                    'review': result['response']
-                })
+                for future in as_completed(future_to_file):
+                    result = future.result()
+                    if result:
+                        review_results.append(result)
 
             return {
                 'pr_number': pr_data.get('number', ''),
