@@ -5,6 +5,7 @@ from typing import Dict, List, Any
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import re
 
 class CodeLlamaReviewer:
     def __init__(self, api_url: str):
@@ -38,7 +39,7 @@ class CodeLlamaReviewer:
 리뷰 결과:"""
 
     def _parse_review_result(self, review_text: str) -> List[Dict[str, Any]]:
-        """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다."""
+        """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다. 구간이 오면 첫 번째 숫자만 사용합니다."""
         comments = []
         current_comment = {}
         
@@ -47,18 +48,25 @@ class CodeLlamaReviewer:
             if not line:
                 continue
                 
-            if line.startswith('라인:'):
+            if line.startswith('라인:') or line.startswith('Line:'):
                 if current_comment:
                     comments.append(current_comment)
-                current_comment = {'line': int(line.split(':')[1].strip())}
-            elif line.startswith('심각도:'):
-                current_comment['severity'] = line.split(':')[1].strip()
-            elif line.startswith('카테고리:'):
-                current_comment['category'] = line.split(':')[1].strip()
-            elif line.startswith('설명:'):
-                current_comment['description'] = line.split(':')[1].strip()
-            elif line.startswith('제안:'):
-                current_comment['proposal'] = line.split(':')[1].strip()
+                # 구간/복수 라인에서 첫 번째 숫자만 추출
+                line_field = line.split(':', 1)[1].strip()
+                m = re.match(r'^(\d+)', line_field)
+                if m:
+                    first_line = int(m.group(1))
+                    current_comment = {'line': first_line}
+                else:
+                    current_comment = {}
+            elif line.startswith('심각도:') or line.startswith('Severity:'):
+                current_comment['severity'] = line.split(':', 1)[1].strip()
+            elif line.startswith('카테고리:') or line.startswith('Category:'):
+                current_comment['category'] = line.split(':', 1)[1].strip()
+            elif line.startswith('설명:') or line.startswith('Description:'):
+                current_comment['description'] = line.split(':', 1)[1].strip()
+            elif line.startswith('제안:') or line.startswith('Proposal:') or line.startswith('Proposed solution:'):
+                current_comment['proposal'] = line.split(':', 1)[1].strip()
                 
         if current_comment:
             comments.append(current_comment)
