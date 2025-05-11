@@ -45,18 +45,28 @@ class CodeLlamaReviewer:
         try:
             review_results = []
             
-            for file in pr_data['files']:
-                if not file['filename'].endswith(('.py', '.js', '.java', '.cpp', '.c', '.h', '.hpp')):
+            # PR 데이터에서 변경된 파일 목록 가져오기
+            changed_files = pr_data.get('changed_files', [])
+            
+            for file_data in changed_files:
+                filename = file_data.get('filename', '')
+                if not filename.endswith(('.py', '.js', '.java', '.cpp', '.c', '.h', '.hpp')):
                     continue
 
-                logger.info(f"리뷰 중: {file['filename']}")
+                logger.info(f"리뷰 중: {filename}")
+                
+                # 파일 내용 가져오기
+                content = file_data.get('patch', '')
+                if not content:
+                    logger.warning(f"파일 내용이 비어있습니다: {filename}")
+                    continue
                 
                 # Ollama API 호출
                 response = requests.post(
                     f"{self.api_url}/api/generate",
                     json={
                         "model": "codellama:13b",
-                        "prompt": self._create_prompt(file['content']),
+                        "prompt": self._create_prompt(content),
                         "stream": False
                     }
                 )
@@ -67,13 +77,13 @@ class CodeLlamaReviewer:
 
                 result = response.json()
                 review_results.append({
-                    'file': file['filename'],
+                    'file': filename,
                     'review': result['response']
                 })
 
             return {
-                'pr_number': pr_data['number'],
-                'title': pr_data['title'],
+                'pr_number': pr_data.get('number', ''),
+                'title': pr_data.get('title', ''),
                 'reviews': review_results
             }
 
