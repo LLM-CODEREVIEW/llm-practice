@@ -28,25 +28,36 @@ class LineCommenter:
             review_text = '\n'.join(review_text)
 
         # 정규식 패턴 개선
-        line_pattern = r"Line:\s*(\d+)"
+        line_pattern = r"Line:\s*([\d,\- ]+)"
         severity_pattern = r"Severity:\s*(HIGH|MEDIUM|LOW)"
         category_pattern = r"Category:\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)"
         description_pattern = r"Description:\s*(.*?)(?=\n\n|$)"
-        suggestion_pattern = r"(Proposed solution|제안):\s*(.*?)(?=\n\n|$)"
+        suggestion_pattern = r"(Proposal|Proposed solution|제안):\s*(.*?)(?=\n\n|$)"
 
         # 각 이슈 블록 추출
-        issue_blocks = re.split(r"(?=Line:\s*\d+)", review_text)
+        issue_blocks = re.split(r"(?=Line:\s*[\d,\- ]+)", review_text)
 
         for block in issue_blocks:
             if not block.strip():
                 continue
 
-            # 각 속성 추출
             line_match = re.search(line_pattern, block)
             if not line_match:
                 continue
 
-            line_num = int(line_match.group(1))
+            # 여러 라인/구간 파싱
+            line_field = line_match.group(1)
+            line_nums = []
+            for part in line_field.split(','):
+                part = part.strip()
+                m = re.match(r'^(\d+)-(\d+)$', part)
+                if m:
+                    start, end = int(m.group(1)), int(m.group(2))
+                    line_nums.extend(range(start, end + 1))
+                else:
+                    m = re.match(r'^(\d+)$', part)
+                    if m:
+                        line_nums.append(int(m.group(1)))
 
             severity_match = re.search(severity_pattern, block)
             category_match = re.search(category_pattern, block)
@@ -54,14 +65,15 @@ class LineCommenter:
             suggestion_match = re.search(suggestion_pattern, block)
 
             if severity_match and category_match and description_match:
-                issue = {
-                    'line': line_num,
-                    'severity': severity_match.group(1),
-                    'category': category_match.group(1),
-                    'description': description_match.group(1).strip(),
-                    'suggestion': suggestion_match.group(2).strip() if suggestion_match else ""
-                }
-                issues.append(issue)
+                for line_num in line_nums:
+                    issue = {
+                        'line': line_num,
+                        'severity': severity_match.group(1),
+                        'category': category_match.group(1),
+                        'description': description_match.group(1).strip(),
+                        'suggestion': suggestion_match.group(2).strip() if suggestion_match else ""
+                    }
+                    issues.append(issue)
 
         return issues
 
