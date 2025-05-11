@@ -85,16 +85,14 @@ class GitHubCommenter:
                         continue
 
                     logger.debug(f"[DEBUG] 원본 comment['line']: {comment.get('line')}")
-                    body = f"""**심각도**: {comment.get('severity', 'N/A')}
-**카테고리**: {comment.get('category', 'N/A')}
-**설명**: {comment.get('description', 'N/A')}
-**제안**: {comment.get('proposal', 'N/A')}"""
-
+                    logger.debug(f"[DEBUG] comment['file']: {comment.get('file')}")
                     patch = file_patches.get(comment['file'])
                     if not patch:
-                        logger.warning(f"Patch not found for file: {comment['file']}")
+                        logger.warning(f"[DEBUG] Patch not found for file: {comment['file']}. file_patches keys: {list(file_patches.keys())}")
                         continue
+                    logger.debug(f"[DEBUG] patch 내용 (앞 20줄):\n" + '\n'.join(patch.split('\n')[:20]))
                     line_to_position = self._build_line_to_position_map(patch)
+                    logger.debug(f"[DEBUG] line_to_position 매핑: {line_to_position}")
                     line_nums = self._parse_line_field(comment['line'])
                     logger.debug(f"[DEBUG] 파싱된 라인 리스트: {line_nums}")
                     if not line_nums:
