@@ -2,6 +2,7 @@ import random
 
 
 def generate_lotto_numbers(num_sets=1):
+    # 테스트 주석
     """
     로또 번호를 생성하는 함수
 
