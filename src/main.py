@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument("--pr-number", required=True, type=int, help="Pull request number")
     parser.add_argument("--base-sha", required=True, help="Base commit SHA")
     parser.add_argument("--head-sha", required=True, help="Head commit SHA")
-    parser.add_argument("--model-name", default="codellama", help="Ollama 모델 이름")
+    parser.add_argument("--api-url", required=True, help="Ollama API URL")
     return parser.parse_args()
 
 def main():
@@ -33,7 +33,7 @@ def main():
         pr_data = extractor.extract_pr_data()
 
         # CodeLlama 모델을 사용한 코드 리뷰
-        reviewer = CodeLlamaReviewer(model_name=args.model_name)
+        reviewer = CodeLlamaReviewer(api_url=args.api_url)
         review_results = reviewer.review_code(pr_data)
 
         # 라인별 코멘트 생성

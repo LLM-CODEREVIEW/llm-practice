@@ -19,7 +19,7 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Install dependencies # todo 와우 이걸 매번 설치하고 있네;; 괜찮은 건가;
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
@@ -27,11 +27,11 @@ jobs:
     - name: Run code review
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CODELAMA_MODEL_PATH: ${{ secrets.CODELAMA_MODEL_PATH }}
+        OLLAMA_API_URL: "https://1170-210-205-62-42.ngrok-free.app"
       run: |
         python src/main.py \
           --repo ${{ github.repository }} \
           --pr-number ${{ github.event.pull_request.number }} \
           --base-sha ${{ github.event.pull_request.base.sha }} \
           --head-sha ${{ github.event.pull_request.head.sha }} \
-          --model-path ${{ secrets.CODELAMA_MODEL_PATH }} 
+          --api-url ${{ env.OLLAMA_API_URL }} 
