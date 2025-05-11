@@ -35,6 +35,7 @@ class PRExtractor:
                 }
                 pr_data["changed_files"].append(file_data)
 
+            logger.info(f"[DEBUG] extract_pr_data 결과: {pr_data}")
             return pr_data
 
         except Exception as e:

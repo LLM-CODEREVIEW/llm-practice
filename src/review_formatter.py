@@ -194,6 +194,9 @@ class ReviewFormatter:
             for issue in all_issues:
                 grouped_issues[issue['file']].append(issue)
             
+            logger.debug(f"[DEBUG] all_issues: {all_issues}")
+            logger.debug(f"[DEBUG] grouped_issues: {grouped_issues}")
+            
             for file, file_issues in grouped_issues.items():
                 summary += self._format_file_summary(file, file_issues)
             
@@ -206,6 +209,7 @@ class ReviewFormatter:
                     body = comment.get('body', '')
                     summary += f"### 📄 {file} (라인 {line})\n\n{body}\n\n"
             
+            logger.debug(f"[DEBUG] summary: {summary}")
             return summary
 
         except Exception as e:

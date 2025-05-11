@@ -103,8 +103,13 @@ class CodeLlamaReviewer:
             result = response.json()
             review_text = result['response']
             
-            # 리뷰 결과 파싱
-            parsed_comments = self._parse_review_result(review_text)
+            logger.info(f"[DEBUG] LLM 응답 원본:\n{review_text}")
+            try:
+                parsed_comments = self._parse_review_result(review_text)
+                logger.info(f"[DEBUG] 파싱된 리뷰 코멘트: {parsed_comments}")
+            except Exception as e:
+                logger.error(f"[DEBUG] 리뷰 파싱 중 예외 발생: {str(e)}")
+                parsed_comments = []
             
             # 리뷰 결과 로깅
             logger.info(f"파일 {filename} 리뷰 결과:\n{review_text}")

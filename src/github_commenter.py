@@ -74,6 +74,7 @@ class GitHubCommenter:
         return result
 
     def post_review(self, summary: str, line_comments: List[Dict[str, Any]]) -> None:
+        logger.debug(f"[DEBUG] post_review 진입: summary={summary}")
         """리뷰 요약과 라인별 코멘트를 GitHub에 게시합니다."""
         try:
             review_comments = []

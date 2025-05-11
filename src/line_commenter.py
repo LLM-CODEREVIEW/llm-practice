@@ -43,6 +43,7 @@ class LineCommenter:
 
             line_match = re.search(line_pattern, block)
             if not line_match:
+                logger.warning(f"[DEBUG] block에서 라인 파싱 실패: {block}")
                 continue
 
             # 여러 라인/구간 파싱
@@ -100,6 +101,7 @@ class LineCommenter:
 
     def generate_comments(self, review_results: Dict[str, Any], pr_extractor: PRExtractor) -> List[Dict[str, Any]]:
         """리뷰 결과를 기반으로 라인별 코멘트를 생성합니다."""
+        logger.debug(f"[DEBUG] review_results: {review_results}")
         comments = []
         
         try:
@@ -109,12 +111,14 @@ class LineCommenter:
             for review in reviews:
                 file_name = review.get('file')
                 review_text = review.get('review')
+                logger.debug(f"[DEBUG] file_name: {file_name}, review_text: {review_text}")
                 
                 if not file_name or not review_text:
                     continue
                 
                 # 리뷰 텍스트 파싱
                 issues = self._parse_review(review_text)
+                logger.debug(f"[DEBUG] 파싱된 issues: {issues}")
                 
                 for issue in issues:
                     # 라인 번호가 없는 경우 건너뛰기
@@ -143,6 +147,7 @@ class LineCommenter:
                 )
             )
             
+            logger.debug(f"[DEBUG] 최종 생성된 comments: {comments}")
             return comments
 
         except Exception as e:
