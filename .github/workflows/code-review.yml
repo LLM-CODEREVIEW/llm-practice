@@ -1,0 +1,59 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'  # pip 캐시 활성화
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+        max-age: 7d  # 캐시 만료 시간 7일
+
+    - name: Cache virtual environment
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-venv-
+        max-age: 7d  # 캐시 만료 시간 7일
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install --no-cache-dir -r requirements.txt
+
+    - name: Run code review
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        OLLAMA_API_URL: "https://4aff-210-205-62-42.ngrok-free.app"
+      run: |
+        source .venv/bin/activate
+        python src/main.py \
+          --repo ${{ github.repository }} \
+          --pr-number ${{ github.event.pull_request.number }} \
+          --base-sha ${{ github.event.pull_request.base.sha }} \
+          --head-sha ${{ github.event.pull_request.head.sha }} \
+          --api-url ${{ env.OLLAMA_API_URL }} 
