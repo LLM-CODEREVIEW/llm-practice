@@ -85,7 +85,7 @@ class CodeLlamaReviewer:
     def review_code(self, pr_data: dict) -> dict:
         """PR의 코드를 리뷰"""
         try:
-            review_results = []
+            review_results = {}
             changed_files = pr_data.get('changed_files', [])
             
             # 병렬 처리로 파일 리뷰 수행
@@ -98,13 +98,9 @@ class CodeLlamaReviewer:
                 for future in as_completed(future_to_file):
                     result = future.result()
                     if result:
-                        review_results.append(result)
+                        review_results[result['file']] = result['review']
 
-            return {
-                'pr_number': pr_data.get('number', ''),
-                'title': pr_data.get('title', ''),
-                'reviews': review_results
-            }
+            return review_results
 
         except Exception as e:
             logger.error(f"코드 리뷰 중 오류 발생: {str(e)}")
