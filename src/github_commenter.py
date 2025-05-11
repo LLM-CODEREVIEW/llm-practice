@@ -52,11 +52,23 @@ class GitHubCommenter:
                 file_line += 1  # context 라인
         return line_to_position
 
+    def _extract_first_line(self, line_field):
+        """
+        '2-6' → 2, '7' → 7, int → int
+        """
+        import re
+        if isinstance(line_field, int):
+            return line_field
+        if isinstance(line_field, str):
+            m = re.match(r'^(\d+)', line_field.strip())
+            if m:
+                return int(m.group(1))
+        return None
+
     def post_review(self, summary: str, line_comments: List[Dict[str, Any]]) -> None:
         """리뷰 요약과 라인별 코멘트를 GitHub에 게시합니다."""
         try:
             review_comments = []
-            # PR의 파일별 patch 정보 미리 수집
             file_patches = {f.filename: f.patch for f in self.pr.get_files() if hasattr(f, 'patch') and f.patch}
             for comment in line_comments:
                 try:
@@ -74,9 +86,13 @@ class GitHubCommenter:
                         logger.warning(f"Patch not found for file: {comment['file']}")
                         continue
                     line_to_position = self._build_line_to_position_map(patch)
-                    position = line_to_position.get(comment['line'])
+                    line_num = self._extract_first_line(comment['line'])
+                    if not line_num:
+                        logger.warning(f"라인 정보 파싱 실패: {comment['line']}")
+                        continue
+                    position = line_to_position.get(line_num)
                     if not position:
-                        logger.warning(f"라인 {comment['line']} (파일 {comment['file']})은 diff에서 position을 찾을 수 없습니다.")
+                        logger.warning(f"라인 {line_num} (파일 {comment['file']})은 diff에서 position을 찾을 수 없습니다.")
                         continue
 
                     review_comment = {
