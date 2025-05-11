@@ -6,9 +6,6 @@ import sys
 from loguru import logger
 from dotenv import load_dotenv
 
-# .env 파일 로드
-load_dotenv()
-
 from pr_extractor import PRExtractor
 from codellama_reviewer import CodeLlamaReviewer
 from line_commenter import LineCommenter
