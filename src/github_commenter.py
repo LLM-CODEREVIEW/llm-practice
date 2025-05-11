@@ -32,7 +32,34 @@ class GitHubCommenter:
             # 새로운 리뷰 생성
             review_comments = []
             for comment in line_comments:
-                review_comments.append(self._create_review_comment(comment))
+                try:
+                    # 라인 번호가 없는 경우 건너뛰기
+                    if 'line' not in comment:
+                        logger.warning(f"Skipping comment without line number: {comment}")
+                        continue
+                        
+                    # 파일 내용 가져오기
+                    file_content = self.repo_obj.get_contents(comment['file'], ref=self.pr.head.sha)
+                    file_lines = file_content.decoded_content.decode().splitlines()
+                    
+                    # 라인 번호가 파일 범위를 벗어나는 경우 건너뛰기
+                    if comment['line'] > len(file_lines):
+                        logger.warning(f"Line number {comment['line']} is out of range for file {comment['file']}")
+                        continue
+                    
+                    # 코멘트 생성
+                    review_comments.append({
+                        "body": comment['body'],
+                        "commit_id": self.pr.head.sha,
+                        "path": comment['file'],
+                        "position": comment['line']
+                    })
+                except Exception as e:
+                    logger.warning(f"Error creating comment for line {comment.get('line')}: {str(e)}")
+                    continue
+
+            if not review_comments:
+                logger.warning("No valid comments to post")
 
             # 리뷰 제출
             self.pr.create_review(

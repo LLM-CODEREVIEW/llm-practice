@@ -138,11 +138,24 @@ class ReviewFormatter:
         try:
             # 모든 이슈 수집
             all_issues = []
-            for file, review_text in review_results.items():
-                issues = self._parse_review_text(review_text)
-                for issue in issues:
-                    issue['file'] = file
-                    all_issues.append(issue)
+            
+            # review_results가 reviews 리스트를 포함하는 경우
+            if isinstance(review_results, dict) and 'reviews' in review_results:
+                for review in review_results['reviews']:
+                    file = review.get('file')
+                    review_text = review.get('review')
+                    if file and review_text:
+                        issues = self._parse_review_text(review_text)
+                        for issue in issues:
+                            issue['file'] = file
+                            all_issues.append(issue)
+            else:
+                # 기존 구조 처리
+                for file, review_text in review_results.items():
+                    issues = self._parse_review_text(review_text)
+                    for issue in issues:
+                        issue['file'] = file
+                        all_issues.append(issue)
             
             # 이슈 통계 계산
             total_issues = len(all_issues)
@@ -177,9 +190,21 @@ class ReviewFormatter:
             
             # 파일별 요약
             summary += "\n## 파일별 요약\n"
-            grouped_issues = self._group_issues_by_file(review_results)
+            grouped_issues = defaultdict(list)
+            for issue in all_issues:
+                grouped_issues[issue['file']].append(issue)
+            
             for file, file_issues in grouped_issues.items():
                 summary += self._format_file_summary(file, file_issues)
+            
+            # 라인별 코멘트 추가
+            if line_comments:
+                summary += "\n## 📝 라인별 코멘트\n\n"
+                for comment in line_comments:
+                    file = comment.get('file', '알 수 없음')
+                    line = comment.get('line', '알 수 없음')
+                    body = comment.get('body', '')
+                    summary += f"### 📄 {file} (라인 {line})\n\n{body}\n\n"
             
             return summary
 
