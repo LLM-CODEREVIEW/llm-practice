@@ -4,12 +4,13 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   code-review:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: read
 
     steps:
     - uses: actions/checkout@v3
@@ -47,6 +48,8 @@ jobs:
 
     - name: Run code review
       env:
+        # Personal Access Token을 사용할 경우 아래처럼 secrets.MY_GITHUB_TOKEN으로 교체
+        # GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         OLLAMA_API_URL: "https://4aff-210-205-62-42.ngrok-free.app"
       run: |
