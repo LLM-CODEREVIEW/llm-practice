@@ -22,32 +22,46 @@ class LineCommenter:
     def _parse_review(self, review_text: str) -> List[Dict[str, Any]]:
         """리뷰 텍스트를 파싱하여 이슈 목록을 생성합니다."""
         issues = []
-        
-        # review_text가 리스트인 경우 문자열로 변환
+
+        # LLM 응답이 리스트인 경우 문자열로 변환
         if isinstance(review_text, list):
             review_text = '\n'.join(review_text)
-        
-        current_issue = {}
-        for line in review_text.split('\n'):
-            line = line.strip()
-            if not line:
+
+        # 정규식 패턴 개선
+        line_pattern = r"Line:\s*(\d+)"
+        severity_pattern = r"Severity:\s*(HIGH|MEDIUM|LOW)"
+        category_pattern = r"Category:\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)"
+        description_pattern = r"Description:\s*(.*?)(?=\n\n|$)"
+        suggestion_pattern = r"(Proposed solution|제안):\s*(.*?)(?=\n\n|$)"
+
+        # 각 이슈 블록 추출
+        issue_blocks = re.split(r"(?=Line:\s*\d+)", review_text)
+
+        for block in issue_blocks:
+            if not block.strip():
                 continue
 
-            if line.startswith('라인:'):
-                if current_issue:
-                    issues.append(current_issue)
-                current_issue = {'line': int(line.split(':')[1].strip())}
-            elif line.startswith('심각도:'):
-                current_issue['severity'] = line.split(':')[1].strip()
-            elif line.startswith('카테고리:'):
-                current_issue['category'] = line.split(':')[1].strip()
-            elif line.startswith('설명:'):
-                current_issue['description'] = line.split(':')[1].strip()
-            elif line.startswith('제안:'):
-                current_issue['suggestion'] = line.split(':')[1].strip()
+            # 각 속성 추출
+            line_match = re.search(line_pattern, block)
+            if not line_match:
+                continue
 
-        if current_issue:
-            issues.append(current_issue)
+            line_num = int(line_match.group(1))
+
+            severity_match = re.search(severity_pattern, block)
+            category_match = re.search(category_pattern, block)
+            description_match = re.search(description_pattern, block)
+            suggestion_match = re.search(suggestion_pattern, block)
+
+            if severity_match and category_match and description_match:
+                issue = {
+                    'line': line_num,
+                    'severity': severity_match.group(1),
+                    'category': category_match.group(1),
+                    'description': description_match.group(1).strip(),
+                    'suggestion': suggestion_match.group(2).strip() if suggestion_match else ""
+                }
+                issues.append(issue)
 
         return issues
 
