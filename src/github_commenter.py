@@ -107,7 +107,7 @@ class GitHubCommenter:
                             logger.warning(f"라인 {line_num} (파일 {comment['file']})은 diff에서 position을 찾을 수 없습니다.")
                             continue
                         review_comment = {
-                            "body": body,
+                            "body": comment['body'],
                             "path": comment['file'],
                             "position": position
                         }
