@@ -23,25 +23,19 @@ class CodeLlamaReviewer:
             raise
 
     def _create_prompt(self, code: str) -> str:
-        """코드 리뷰를 위한 프롬프트 생성"""
-        return f"""다음 코드를 리뷰해주세요. 코드의 품질, 보안, 성능, 가독성 등을 검토하고 개선점을 제안해주세요.
+        """코드 리뷰를 위한 프롬프트를 생성합니다."""
+        return f"""다음 코드를 리뷰해주세요. 각 이슈에 대해 다음 형식으로 응답해주세요:
+
+라인: [문제가 있는 라인 번호]
+심각도: [HIGH/MEDIUM/LOW]
+카테고리: [BUG/PERFORMANCE/READABILITY/SECURITY/OTHER]
+설명: [구체적인 문제 설명]
+제안: [개선 방안]
 
 코드:
 {code}
 
-리뷰 형식:
-1. 전체적인 평가
-2. 주요 문제점
-3. 개선 제안
-4. 보안 관련 이슈
-5. 성능 관련 이슈
-6. 가독성 관련 이슈
-
-각 이슈는 다음 형식으로 작성해주세요:
-- 심각도: [HIGH/MEDIUM/LOW]
-- 설명: [이슈 설명]
-- 제안: [개선 방안]
-"""
+리뷰 결과:"""
 
     def _review_single_file(self, file_data: Dict[str, Any]) -> Dict[str, Any]:
         """단일 파일 리뷰 수행"""
