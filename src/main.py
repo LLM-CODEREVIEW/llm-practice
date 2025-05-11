@@ -31,18 +31,22 @@ def main():
         # PR 정보 추출
         extractor = PRExtractor(args.repo, args.pr_number)
         pr_data = extractor.extract_pr_data()
+        logger.info(f"[DEBUG] pr_data: {pr_data}")
 
         # CodeLlama 모델을 사용한 코드 리뷰
         reviewer = CodeLlamaReviewer(api_url=args.api_url)
         review_results = reviewer.review_code(pr_data)
+        logger.info(f"[DEBUG] review_results: {review_results}")
 
         # 라인별 코멘트 생성
         commenter = LineCommenter()
         line_comments = commenter.generate_comments(review_results, extractor)
+        logger.info(f"[DEBUG] line_comments: {line_comments}")
 
         # 리뷰 결과 포맷팅
         formatter = ReviewFormatter()
         formatted_review = formatter.format_review(review_results, line_comments)
+        logger.info(f"[DEBUG] formatted_review: {formatted_review}")
 
         # GitHub에 코멘트 게시
         github_commenter = GitHubCommenter(args.repo, args.pr_number)
