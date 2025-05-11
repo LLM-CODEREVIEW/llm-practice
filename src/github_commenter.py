@@ -3,6 +3,7 @@ from loguru import logger
 import os
 from typing import Dict, List, Any
 
+
 class GitHubCommenter:
     def __init__(self, repo: str, pr_number: int):
         self.repo = repo
@@ -42,8 +43,7 @@ class GitHubCommenter:
                     review_comments.append({
                         "body": body,
                         "path": comment['file'],
-                        "position": comment['line'],
-                        "side": "RIGHT"
+                        "position": comment['line']
                     })
 
                     logger.debug(f"Created comment for file {comment['file']} line {comment['line']}")
@@ -68,7 +68,7 @@ class GitHubCommenter:
                 logger.info(f"Successfully posted review with {len(review_comments)} comments")
 
         except Exception as e:
-            logger.error(f"Error posting review: {str(e)}", exc_info=True)
+            logger.error("Error posting review: {}", str(e), exc_info=True)
             raise
 
     def update_review(self, summary: str, line_comments: List[Dict[str, Any]]) -> None:
