@@ -22,58 +22,33 @@ class LineCommenter:
     def _parse_review(self, review_text: str) -> List[Dict[str, Any]]:
         """리뷰 텍스트를 파싱하여 이슈 목록을 생성합니다."""
         issues = []
+        
+        # review_text가 리스트인 경우 문자열로 변환
+        if isinstance(review_text, list):
+            review_text = '\n'.join(review_text)
+        
         current_issue = {}
-        
-        # 이슈 패턴
-        severity_pattern = r"심각도:\s*(HIGH|MEDIUM|LOW)"
-        category_pattern = r"카테고리:\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)"
-        description_pattern = r"설명:\s*(.*?)(?=\n\n|$)"
-        suggestion_pattern = r"제안:\s*(.*?)(?=\n\n|$)"
-        line_pattern = r"라인:\s*(\d+)"
-        
         for line in review_text.split('\n'):
-            # 심각도 매칭
-            severity_match = re.search(severity_pattern, line, re.IGNORECASE)
-            if severity_match:
+            line = line.strip()
+            if not line:
+                continue
+
+            if line.startswith('라인:'):
                 if current_issue:
                     issues.append(current_issue)
-                current_issue = {
-                    'severity': severity_match.group(1),
-                    'category': 'OTHER',
-                    'description': '',
-                    'suggestion': '',
-                    'line': None
-                }
-                continue
-            
-            if current_issue:
-                # 라인 번호 매칭
-                line_match = re.search(line_pattern, line)
-                if line_match:
-                    current_issue['line'] = int(line_match.group(1))
-                    continue
-                
-                # 카테고리 매칭
-                category_match = re.search(category_pattern, line, re.IGNORECASE)
-                if category_match:
-                    current_issue['category'] = category_match.group(1)
-                    continue
-                
-                # 설명 매칭
-                description_match = re.search(description_pattern, line)
-                if description_match:
-                    current_issue['description'] = description_match.group(1)
-                    continue
-                
-                # 제안 매칭
-                suggestion_match = re.search(suggestion_pattern, line)
-                if suggestion_match:
-                    current_issue['suggestion'] = suggestion_match.group(1)
-                    continue
-        
+                current_issue = {'line': int(line.split(':')[1].strip())}
+            elif line.startswith('심각도:'):
+                current_issue['severity'] = line.split(':')[1].strip()
+            elif line.startswith('카테고리:'):
+                current_issue['category'] = line.split(':')[1].strip()
+            elif line.startswith('설명:'):
+                current_issue['description'] = line.split(':')[1].strip()
+            elif line.startswith('제안:'):
+                current_issue['suggestion'] = line.split(':')[1].strip()
+
         if current_issue:
             issues.append(current_issue)
-        
+
         return issues
 
     def _format_comment(self, issue: Dict[str, Any], context: Dict[str, Any]) -> str:
