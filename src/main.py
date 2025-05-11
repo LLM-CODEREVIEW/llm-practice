@@ -2,7 +2,6 @@
 import argparse
 import os
 import json
-import sys
 from loguru import logger
 from dotenv import load_dotenv
 
@@ -26,46 +25,48 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    # GitHub 토큰 확인
-    github_token = os.getenv("GITHUB_TOKEN")
-    if not github_token:
-        logger.error("GITHUB_TOKEN 환경 변수가 설정되지 않았습니다.")
-        sys.exit(1)
-
-    # PR 데이터 추출
-    pr_extractor = PRExtractor(github_token)
-    repo = os.getenv("GITHUB_REPOSITORY")
-    pr_number = int(os.getenv("PR_NUMBER", "0"))
-    
-    if not repo or pr_number == 0:
-        logger.error("GITHUB_REPOSITORY 또는 PR_NUMBER 환경 변수가 설정되지 않았습니다.")
-        sys.exit(1)
-
     try:
-        pr_data = pr_extractor.extract_pr_data(repo, pr_number)
+        # 명령행 인자 파싱
+        args = parse_args()
+        
+        # 환경 변수 확인
+        github_token = os.getenv('GITHUB_TOKEN')
+        if not github_token:
+            raise ValueError("GITHUB_TOKEN 환경 변수가 설정되지 않았습니다.")
+        
+        # PR 데이터 추출
+        extractor = PRExtractor(github_token)
+        pr_data = extractor.extract_pr_data(args.repo, args.pr_number)
+        
+        # 코드 리뷰 수행
+        reviewer = CodeLlamaReviewer(args.api_url)
+        review_results = reviewer.review_code(pr_data)
+        
+        # 리뷰 결과 포맷팅
+        formatter = ReviewFormatter()
+        formatted_review = formatter.format_review(review_results, [])
+        
+        # 라인별 코멘트 생성
+        commenter = LineCommenter()
+        line_comments = commenter.generate_comments(review_results, extractor)
+        
+        # PR에 리뷰 결과 추가
+        if args.dry_run:
+            logger.info("Dry run 모드: PR에 리뷰를 추가하지 않습니다.")
+            logger.info(f"리뷰 결과:\n{formatted_review}")
+            logger.info(f"라인 코멘트:\n{json.dumps(line_comments, indent=2, ensure_ascii=False)}")
+        else:
+            extractor.add_review(
+                args.repo,
+                args.pr_number,
+                formatted_review,
+                line_comments
+            )
+            logger.info("리뷰가 성공적으로 추가되었습니다.")
+        
     except Exception as e:
-        logger.error(f"PR 데이터 추출 중 오류 발생: {str(e)}")
-        sys.exit(1)
-
-    # 코드 리뷰 수행
-    reviewer = CodeLlamaReviewer()
-    review_results = reviewer.review_code(pr_data)
-
-    # 리뷰 결과 포맷팅
-    formatter = ReviewFormatter()
-    formatted_review = formatter.format_review(review_results)
-
-    # 라인 코멘트 생성
-    commenter = LineCommenter()
-    comments = commenter.generate_comments(review_results)
-
-    # 리뷰 추가
-    try:
-        pr_extractor.add_review(repo, pr_number, formatted_review, comments)
-        logger.info("코드 리뷰가 성공적으로 완료되었습니다.")
-    except Exception as e:
-        logger.error(f"리뷰 추가 중 오류 발생: {str(e)}")
-        sys.exit(1)
+        logger.error(f"Error during code review: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     main() 

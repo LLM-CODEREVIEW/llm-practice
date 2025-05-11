@@ -4,23 +4,23 @@ import os
 from typing import Dict, List, Any
 
 class PRExtractor:
-    def __init__(self, github_token: str):
-        self.github = Github(github_token)
+    def __init__(self, repo: str, pr_number: int):
+        self.repo = repo
+        self.pr_number = pr_number
+        self.github = Github(os.getenv("GITHUB_TOKEN"))
+        self.repo_obj = self.github.get_repo(repo)
+        self.pr = self.repo_obj.get_pull(pr_number)
 
-    def extract_pr_data(self, repo: str, pr_number: int) -> Dict[str, Any]:
+    def extract_pr_data(self) -> Dict[str, Any]:
         """PR의 변경 사항을 추출하고 구조화된 데이터로 반환합니다."""
         try:
-            repo_obj = self.github.get_repo(repo)
-            pr = repo_obj.get_pull(pr_number)
-            
-            files = pr.get_files()
+            files = self.pr.get_files()
             pr_data = {
-                "title": pr.title,
-                "description": pr.body,
+                "title": self.pr.title,
+                "description": self.pr.body,
                 "changed_files": [],
-                "base_sha": pr.base.sha,
-                "head_sha": pr.head.sha,
-                "number": pr_number
+                "base_sha": self.pr.base.sha,
+                "head_sha": self.pr.head.sha
             }
 
             for file in files:
@@ -41,22 +41,19 @@ class PRExtractor:
             logger.error(f"Error extracting PR data: {str(e)}")
             raise
 
-    def get_file_content(self, repo: str, file_path: str, ref: str) -> str:
+    def get_file_content(self, file_path: str, ref: str) -> str:
         """특정 파일의 내용을 가져옵니다."""
         try:
-            repo_obj = self.github.get_repo(repo)
-            content = repo_obj.get_contents(file_path, ref=ref)
+            content = self.repo_obj.get_contents(file_path, ref=ref)
             return content.decoded_content.decode('utf-8')
         except Exception as e:
             logger.error(f"Error getting file content for {file_path}: {str(e)}")
             raise
 
-    def get_file_context(self, repo: str, file_path: str, line_number: int, context_lines: int = 5) -> Dict[str, Any]:
+    def get_file_context(self, file_path: str, line_number: int, context_lines: int = 5) -> Dict[str, Any]:
         """특정 라인 주변의 컨텍스트를 가져옵니다."""
         try:
-            repo_obj = self.github.get_repo(repo)
-            pr = repo_obj.get_pull(pr_number)
-            content = self.get_file_content(repo, file_path, pr.head.sha)
+            content = self.get_file_content(file_path, self.pr.head.sha)
             lines = content.split('\n')
             
             start_line = max(0, line_number - context_lines - 1)
@@ -71,32 +68,4 @@ class PRExtractor:
             }
         except Exception as e:
             logger.error(f"Error getting file context for {file_path}: {str(e)}")
-            raise
-
-    def add_review(self, repo: str, pr_number: int, review_body: str, comments: List[Dict[str, Any]]) -> None:
-        """PR에 리뷰를 추가합니다."""
-        try:
-            repo_obj = self.github.get_repo(repo)
-            pr = repo_obj.get_pull(pr_number)
-            
-            # 리뷰 코멘트 생성
-            review_comments = []
-            for comment in comments:
-                review_comments.append({
-                    'path': comment['file'],
-                    'position': comment['line'],
-                    'body': comment['body']
-                })
-            
-            # 리뷰 추가
-            pr.create_review(
-                body=review_body,
-                event='COMMENT',
-                comments=review_comments
-            )
-            
-            logger.info(f"리뷰가 성공적으로 추가되었습니다: PR #{pr_number}")
-            
-        except Exception as e:
-            logger.error(f"Error adding review: {str(e)}")
             raise 
