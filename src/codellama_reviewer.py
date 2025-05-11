@@ -28,8 +28,8 @@ class CodeLlamaReviewer:
         return f"""아래는 GitHub Pull Request의 diff patch입니다.
 
 - patch의 각 줄에서 +로 시작하는 줄(즉, 실제로 변경/추가된 코드)에만 코멘트를 달아주세요.
-- 전체 코드를 이해하고, 변경된 줄(+)에만 코멘트가 필요하다고 판단되는 경우에만 코멘트를 작성하세요.
-- 반드시 아래 형식을 정확히 지켜서 작성하세요:
+- 반드시 아래 형식만 지키세요. 아래 형식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 절대 작성하지 마세요.
+- 아래 예시와 완전히 동일한 양식으로만 작성하세요.
 
 Line: [patch에서 +로 시작하는 줄의 실제 라인 번호]
 Severity: [HIGH|MEDIUM|LOW]
@@ -43,12 +43,6 @@ Severity: HIGH
 Category: BUG
 Description: This line has a potential bug
 Proposed Solution: Fix the bug by doing X
-
-주의사항:
-1. Line 필드는 반드시 포함되어야 합니다
-2. Severity는 HIGH, MEDIUM, LOW 중 하나만 사용하세요
-3. Category는 BUG, PERFORMANCE, READABILITY, SECURITY, OTHER 중 하나만 사용하세요
-4. 각 필드는 정확히 위 형식대로 작성하세요
 
 아래는 diff patch입니다:
 {code}
