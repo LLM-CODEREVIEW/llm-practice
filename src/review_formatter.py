@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Union
 from loguru import logger
 from collections import defaultdict
 import re
@@ -19,7 +19,7 @@ class ReviewFormatter:
             "OTHER": "ℹ️"
         }
 
-    def _parse_review_text(self, review_text: str) -> List[Dict[str, Any]]:
+    def _parse_review_text(self, review_text: Union[str, List[str]]) -> List[Dict[str, Any]]:
         """리뷰 텍스트를 파싱하여 이슈 목록을 생성합니다."""
         issues = []
         current_issue = None
@@ -29,6 +29,10 @@ class ReviewFormatter:
         category_pattern = r"카테고리:\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)"
         description_pattern = r"설명:\s*(.*?)(?=\n\n|$)"
         suggestion_pattern = r"제안:\s*(.*?)(?=\n\n|$)"
+        
+        # 리스트인 경우 문자열로 변환
+        if isinstance(review_text, list):
+            review_text = '\n'.join(review_text)
         
         for line in review_text.split('\n'):
             severity_match = re.search(severity_pattern, line)
@@ -64,7 +68,7 @@ class ReviewFormatter:
             
         return issues
 
-    def _group_issues_by_file(self, review_results: Dict[str, str]) -> Dict[str, List[Dict[str, Any]]]:
+    def _group_issues_by_file(self, review_results: Union[Dict[str, str], Dict[str, List[str]]]) -> Dict[str, List[Dict[str, Any]]]:
         """이슈를 파일별로 그룹화합니다."""
         grouped_issues = defaultdict(list)
         
@@ -115,7 +119,7 @@ class ReviewFormatter:
         
         return summary
 
-    def format_review(self, review_results: Dict[str, str], line_comments: List[Dict[str, Any]]) -> str:
+    def format_review(self, review_results: Union[Dict[str, str], Dict[str, List[str]]], line_comments: List[Dict[str, Any]]) -> str:
         """전체 리뷰 결과를 포맷팅합니다."""
         try:
             # 모든 이슈 수집
