@@ -25,11 +25,18 @@ class CodeLlamaReviewer:
 
     def _create_prompt(self, code: str) -> str:
         """코드 리뷰를 위한 프롬프트를 생성합니다."""
+        # patch에서 +로 시작하는 줄의 라인 번호 추출
+        patch_lines = []
+        for i, line in enumerate(code.split('\n'), 1):
+            if line.startswith('+') and not line.startswith('+++'):
+                patch_lines.append(i)
+        patch_line_str = ', '.join(map(str, patch_lines))
         return f"""아래는 GitHub Pull Request의 diff patch입니다.
 
-- 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요.
-- 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요.
-- Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요.
+- patch의 각 줄에서 +로 시작하는 줄(즉, 실제로 변경/추가된 코드)에만 코멘트를 달아주세요.
+- 반드시 아래 patch에서 +로 시작하는 줄의 라인 번호({patch_line_str})만 사용하세요.
+- patch에 없는 라인 번호는 절대 사용하지 마세요.
+- 아래 예시와 완전히 동일한 양식으로만 작성하세요.
 - 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.
 
 Line: [patch에서 +로 시작하는 줄의 실제 라인 번호]
@@ -39,7 +46,7 @@ Description: [문제 설명]
 Proposed Solution: [개선 방안]
 
 예시:
-Line: 5
+Line: {patch_lines[0] if patch_lines else 1}
 Severity: HIGH
 Category: BUG
 Description: This line has a potential bug
