@@ -19,7 +19,7 @@ class ReviewFormatter:
             "OTHER": "ℹ️"
         }
 
-    def _parse_review_text(self, review_text: Union[str, List[str]]) -> List[Dict[str, Any]]:
+    def _parse_review_text(self, review_text: Union[str, List[str], Dict[str, Any]]) -> List[Dict[str, Any]]:
         """리뷰 텍스트를 파싱하여 이슈 목록을 생성합니다."""
         issues = []
         current_issue = None
@@ -30,8 +30,16 @@ class ReviewFormatter:
         description_pattern = r"설명:\s*(.*?)(?=\n\n|$)"
         suggestion_pattern = r"제안:\s*(.*?)(?=\n\n|$)"
         
+        # 딕셔너리인 경우 처리
+        if isinstance(review_text, dict):
+            if 'severity' in review_text and 'category' in review_text:
+                return [review_text]
+            return []
+            
         # 리스트인 경우 문자열로 변환
         if isinstance(review_text, list):
+            if all(isinstance(item, dict) for item in review_text):
+                return review_text
             review_text = '\n'.join(review_text)
         
         for line in review_text.split('\n'):
@@ -68,7 +76,7 @@ class ReviewFormatter:
             
         return issues
 
-    def _group_issues_by_file(self, review_results: Union[Dict[str, str], Dict[str, List[str]]]) -> Dict[str, List[Dict[str, Any]]]:
+    def _group_issues_by_file(self, review_results: Union[Dict[str, str], Dict[str, List[str]], Dict[str, Dict[str, Any]]]) -> Dict[str, List[Dict[str, Any]]]:
         """이슈를 파일별로 그룹화합니다."""
         grouped_issues = defaultdict(list)
         
@@ -113,13 +121,13 @@ class ReviewFormatter:
         for issue in issues:
             severity_emoji = self.severity_emoji[issue['severity']]
             category_emoji = self.category_emoji[issue['category']]
-            summary += f"- {severity_emoji} {category_emoji} {issue['description']}\n"
-            if issue['suggestion']:
+            summary += f"- {severity_emoji} {category_emoji} {issue.get('description', '')}\n"
+            if issue.get('suggestion'):
                 summary += f"  - 💡 제안: {issue['suggestion']}\n"
         
         return summary
 
-    def format_review(self, review_results: Union[Dict[str, str], Dict[str, List[str]]], line_comments: List[Dict[str, Any]]) -> str:
+    def format_review(self, review_results: Union[Dict[str, str], Dict[str, List[str]], Dict[str, Dict[str, Any]]], line_comments: List[Dict[str, Any]]) -> str:
         """전체 리뷰 결과를 포맷팅합니다."""
         try:
             # 모든 이슈 수집
