@@ -21,27 +21,68 @@ class GitHubCommenter:
             "position": comment['line']
         }
 
+    def _build_line_to_position_map(self, patch: str) -> dict:
+        """
+        patch(diff) 문자열을 받아 실제 파일 라인 번호 → diff position 매핑을 반환
+        """
+        line_to_position = {}
+        if not patch:
+            return line_to_position
+
+        import re
+        lines = patch.split('\n')
+        position = 0
+        file_line = None
+        for line in lines:
+            position += 1
+            if line.startswith('@@'):
+                # 예: @@ -1,7 +1,9 @@
+                m = re.match(r'@@ -\d+(?:,\d+)? \+(\d+)', line)
+                if m:
+                    file_line = int(m.group(1)) - 1  # 다음 +라인부터 시작
+                continue
+            if file_line is None:
+                continue
+            if line.startswith('+') and not line.startswith('+++'):
+                file_line += 1
+                line_to_position[file_line] = position
+            elif line.startswith('-') and not line.startswith('---'):
+                continue  # 삭제된 라인, 파일 라인 증가 없음
+            else:
+                file_line += 1  # context 라인
+        return line_to_position
+
     def post_review(self, summary: str, line_comments: List[Dict[str, Any]]) -> None:
         """리뷰 요약과 라인별 코멘트를 GitHub에 게시합니다."""
         try:
-            # 라인별 코멘트 생성
             review_comments = []
+            # PR의 파일별 patch 정보 미리 수집
+            file_patches = {f.filename: f.patch for f in self.pr.get_files() if hasattr(f, 'patch') and f.patch}
             for comment in line_comments:
                 try:
-                    # 필수 필드 확인
                     if 'line' not in comment or 'file' not in comment:
                         logger.warning(f"Skipping comment with missing fields: {comment}")
                         continue
 
                     body = f"""**심각도**: {comment.get('severity', 'N/A')}
-                                **카테고리**: {comment.get('category', 'N/A')}
-                                **설명**: {comment.get('description', 'N/A')}
-                                **제안**: {comment.get('proposal', 'N/A')}"""
+**카테고리**: {comment.get('category', 'N/A')}
+**설명**: {comment.get('description', 'N/A')}
+**제안**: {comment.get('proposal', 'N/A')}"""
+
+                    patch = file_patches.get(comment['file'])
+                    if not patch:
+                        logger.warning(f"Patch not found for file: {comment['file']}")
+                        continue
+                    line_to_position = self._build_line_to_position_map(patch)
+                    position = line_to_position.get(comment['line'])
+                    if not position:
+                        logger.warning(f"라인 {comment['line']} (파일 {comment['file']})은 diff에서 position을 찾을 수 없습니다.")
+                        continue
 
                     review_comment = {
                         "body": body,
                         "path": comment['file'],
-                        "position": comment['line']
+                        "position": position
                     }
                     logger.debug(f"[DEBUG] 코멘트 생성: {review_comment}")
                     review_comments.append(review_comment)
@@ -53,7 +94,6 @@ class GitHubCommenter:
             logger.info(f"[DEBUG] create_review 파라미터: summary={summary}, comments={review_comments}")
 
             if not review_comments:
-                # 코멘트가 없으면 요약만 게시
                 self.pr.create_issue_comment(summary)
                 logger.info("Posted summary comment only (no line comments)")
             else:
