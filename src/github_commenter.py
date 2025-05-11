@@ -33,26 +33,15 @@ class GitHubCommenter:
             review_comments = []
             for comment in line_comments:
                 try:
-                    # 라인 번호가 없는 경우 건너뛰기
                     if 'line' not in comment:
                         logger.warning(f"Skipping comment without line number: {comment}")
                         continue
-                        
-                    # 파일 내용 가져오기
-                    file_content = self.repo_obj.get_contents(comment['file'], ref=self.pr.head.sha)
-                    file_lines = file_content.decoded_content.decode().splitlines()
-                    
-                    # 라인 번호가 파일 범위를 벗어나는 경우 건너뛰기
-                    if comment['line'] > len(file_lines):
-                        logger.warning(f"Line number {comment['line']} is out of range for file {comment['file']}")
-                        continue
-                    
-                    # 코멘트 생성
+                    # diff 기준 position 대신 line/side 사용
                     review_comments.append({
                         "body": comment['body'],
-                        "commit_id": self.pr.head.sha,
                         "path": comment['file'],
-                        "position": comment['line']
+                        "line": comment['line'],
+                        "side": "RIGHT"
                     })
                 except Exception as e:
                     logger.warning(f"Error creating comment for line {comment.get('line')}: {str(e)}")
