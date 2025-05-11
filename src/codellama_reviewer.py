@@ -29,7 +29,7 @@ class CodeLlamaReviewer:
 
 - patch의 각 줄에서 +로 시작하는 줄(즉, 실제로 변경/추가된 코드)에만 코멘트를 달아주세요.
 - 전체 코드를 이해하고, 변경된 줄(+)에만 코멘트가 필요하다고 판단되는 경우에만 코멘트를 작성하세요.
-- 각 코멘트는 아래 형식으로 작성하세요:
+- 반드시 아래 형식을 정확히 지켜서 작성하세요:
 
 Line: [patch에서 +로 시작하는 줄의 실제 라인 번호]
 Severity: [HIGH|MEDIUM|LOW]
@@ -37,44 +37,56 @@ Category: [BUG|PERFORMANCE|READABILITY|SECURITY|OTHER]
 Description: [문제 설명]
 Proposed Solution: [개선 방안]
 
+예시:
+Line: 5
+Severity: HIGH
+Category: BUG
+Description: This line has a potential bug
+Proposed Solution: Fix the bug by doing X
+
+주의사항:
+1. Line 필드는 반드시 포함되어야 합니다
+2. Severity는 HIGH, MEDIUM, LOW 중 하나만 사용하세요
+3. Category는 BUG, PERFORMANCE, READABILITY, SECURITY, OTHER 중 하나만 사용하세요
+4. 각 필드는 정확히 위 형식대로 작성하세요
+
 아래는 diff patch입니다:
 {code}
 
 리뷰 결과:"""
 
     def _parse_review_result(self, review_text: str) -> List[Dict[str, Any]]:
-        """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다. 구간이 오면 첫 번째 숫자만 사용합니다."""
+        """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다."""
         comments = []
         current_comment = {}
         
-        for line in review_text.split('\n'):
-            line = line.strip()
-            if not line:
+        # 각 이슈 블록을 분리
+        blocks = re.split(r'\n(?=Line:|라인:)', review_text)
+        
+        for block in blocks:
+            if not block.strip():
                 continue
                 
-            if line.startswith('라인:') or line.startswith('Line:'):
-                if current_comment:
-                    comments.append(current_comment)
-                # 구간/복수 라인에서 첫 번째 숫자만 추출
-                line_field = line.split(':', 1)[1].strip()
-                m = re.match(r'^(\d+)', line_field)
-                if m:
-                    first_line = int(m.group(1))
-                    current_comment = {'line': first_line}
-                else:
-                    current_comment = {}
-            elif line.startswith('심각도:') or line.startswith('Severity:'):
-                current_comment['severity'] = line.split(':', 1)[1].strip()
-            elif line.startswith('카테고리:') or line.startswith('Category:'):
-                current_comment['category'] = line.split(':', 1)[1].strip()
-            elif line.startswith('설명:') or line.startswith('Description:'):
-                current_comment['description'] = line.split(':', 1)[1].strip()
-            elif line.startswith('제안:') or line.startswith('Proposal:') or line.startswith('Proposed solution:'):
-                current_comment['proposal'] = line.split(':', 1)[1].strip()
-                
-        if current_comment:
-            comments.append(current_comment)
+            # 필수 필드 확인
+            line_match = re.search(r'(?:Line|라인):\s*(\d+)', block)
+            severity_match = re.search(r'(?:Severity|심각도):\s*(HIGH|MEDIUM|LOW)', block)
+            category_match = re.search(r'(?:Category|카테고리):\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)', block)
+            description_match = re.search(r'(?:Description|설명):\s*(.*?)(?=\n(?:Proposed Solution|제안):|\Z)', block, re.DOTALL)
+            solution_match = re.search(r'(?:Proposed Solution|제안):\s*(.*?)(?=\n(?:Line|라인):|\Z)', block, re.DOTALL)
             
+            if not all([line_match, severity_match, category_match, description_match]):
+                logger.warning(f"[DEBUG] 필수 필드 누락된 블록: {block}")
+                continue
+                
+            comment = {
+                'line': int(line_match.group(1)),
+                'severity': severity_match.group(1),
+                'category': category_match.group(1),
+                'description': description_match.group(1).strip(),
+                'proposal': solution_match.group(1).strip() if solution_match else ""
+            }
+            comments.append(comment)
+        
         return comments
 
     def _review_single_file(self, file_data: Dict[str, Any]) -> Dict[str, Any]:
