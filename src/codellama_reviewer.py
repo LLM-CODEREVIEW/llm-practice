@@ -110,7 +110,7 @@ Proposed Solution: Fix the bug by doing X
                 json={
                     "model": "codellama:13b",
                     "prompt": self._create_prompt(content),
-                    "system": "아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.",
+                    "system": "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.",
                     "stream": False
                 }
             )
@@ -147,7 +147,7 @@ Proposed Solution: Fix the bug by doing X
             return None
 
     def review_code(self, pr_data: dict) -> dict:
-        """PR의 코드를 리뷰"""
+        """PR의 코드를 리뷰 (파일별 summary만 생성)"""
         try:
             review_results = []
             changed_files = pr_data.get('changed_files', [])
@@ -162,12 +162,16 @@ Proposed Solution: Fix the bug by doing X
                 for future in as_completed(future_to_file):
                     result = future.result()
                     if result:
-                        review_results.append(result)
+                        # 파일별 summary만 남김
+                        review_results.append({
+                            'file': result['file'],
+                            'summary': result['review']
+                        })
 
             return {
                 'pr_number': pr_data.get('number', ''),
                 'title': pr_data.get('title', ''),
-                'reviews': review_results
+                'file_summaries': review_results
             }
 
         except Exception as e:
