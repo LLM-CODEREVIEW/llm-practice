@@ -168,7 +168,7 @@ Proposed Solution: Fix the bug by doing X
             response = requests.post(
                 f"{self.api_url}/api/generate",
                 json={
-                    "model": "codellama:13b",
+                    "model": "codellama:34b",
                     "prompt": self._create_prompt(content),
                     "system": "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.",
                     "stream": False
