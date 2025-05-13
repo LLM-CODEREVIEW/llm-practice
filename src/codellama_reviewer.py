@@ -29,21 +29,26 @@ class CodeLlamaReviewer:
                 logger.error("SSH 연결에 필요한 환경 변수가 설정되지 않았습니다.")
                 raise ValueError("Missing required environment variables for SSH connection")
 
-            # SSH 터널 설정
-            ssh_cmd = [
-                'ssh',
-                '-N',
-                '-L', '8080:localhost:11434',  # 로컬 8080 포트를 원격 서버의 11434 포트로 포워딩
-                f'{user}@{host}',
-                '-p', port
-            ]
+            # StrictHostKeyChecking=no 옵션 추가
+            ssh_cmd = f'ssh -o StrictHostKeyChecking=no -N -L 8080:localhost:11434 {user}@{host} -p {port}'
+            self.ssh_process = pexpect.spawn(ssh_cmd)
             
-            self.ssh_process = subprocess.Popen(
-                ssh_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
-            
+            i = self.ssh_process.expect([
+                'Are you sure you want to continue connecting (yes/no/[fingerprint])?',
+                'password:',
+                pexpect.EOF,
+                pexpect.TIMEOUT
+            ], timeout=30)
+
+            if i == 0:
+                self.ssh_process.sendline('yes')
+                self.ssh_process.expect('password:')
+                self.ssh_process.sendline(password)
+            elif i == 1:
+                self.ssh_process.sendline(password)
+            else:
+                raise Exception('SSH 연결 실패')
+
             # 프로세스 종료 시 SSH 터널도 종료되도록 설정
             atexit.register(self._cleanup_ssh_tunnel)
             signal.signal(signal.SIGTERM, self._cleanup_ssh_tunnel)
