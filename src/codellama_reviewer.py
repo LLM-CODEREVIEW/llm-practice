@@ -6,12 +6,65 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import re
+import subprocess
+import atexit
+import signal
 
 class CodeLlamaReviewer:
     def __init__(self, api_url: str):
         self.api_url = api_url
+        self.ssh_process = None
+        self._setup_ssh_tunnel()
         self._check_ollama()
         self.max_workers = 3  # 동시에 처리할 파일 수
+
+    def _setup_ssh_tunnel(self):
+        """SSH 터널을 설정합니다."""
+        try:
+            host = os.getenv('LLM_SERVER_HOST')
+            user = os.getenv('LLM_SERVER_USER')
+            port = os.getenv('LLM_SERVER_PORT', '22')
+            
+            if not all([host, user]):
+                logger.error("SSH 연결에 필요한 환경 변수가 설정되지 않았습니다.")
+                raise ValueError("Missing required environment variables for SSH connection")
+
+            # SSH 터널 설정
+            ssh_cmd = [
+                'ssh',
+                '-N',
+                '-L', '8080:localhost:11434',  # 로컬 8080 포트를 원격 서버의 11434 포트로 포워딩
+                f'{user}@{host}',
+                '-p', port
+            ]
+            
+            self.ssh_process = subprocess.Popen(
+                ssh_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            
+            # 프로세스 종료 시 SSH 터널도 종료되도록 설정
+            atexit.register(self._cleanup_ssh_tunnel)
+            signal.signal(signal.SIGTERM, self._cleanup_ssh_tunnel)
+            
+            # 터널이 설정될 때까지 잠시 대기
+            time.sleep(2)
+            
+            # API URL을 로컬 터널 포인트로 변경
+            self.api_url = "http://localhost:8080"
+            logger.info("SSH 터널이 성공적으로 설정되었습니다.")
+            
+        except Exception as e:
+            logger.error(f"SSH 터널 설정 중 오류 발생: {str(e)}")
+            raise
+
+    def _cleanup_ssh_tunnel(self, *args):
+        """SSH 터널을 정리합니다."""
+        if self.ssh_process:
+            self.ssh_process.terminate()
+            self.ssh_process.wait()
+            logger.info("SSH 터널이 종료되었습니다.")
 
     def _check_ollama(self):
         """Ollama API 서버 연결 확인"""

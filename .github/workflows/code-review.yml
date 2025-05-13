@@ -39,6 +39,16 @@ jobs:
           ${{ runner.os }}-venv-
         max-age: 7d  # 캐시 만료 시간 7일
 
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add host key
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -48,10 +58,11 @@ jobs:
 
     - name: Run code review
       env:
-        # Personal Access Token을 사용할 경우 아래처럼 secrets.MY_GITHUB_TOKEN으로 교체
-        # GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        OLLAMA_API_URL: "https://4aff-210-205-62-42.ngrok-free.app"
+        LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
+        LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
+        LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
+        LLM_API_URL: ${{ secrets.LLM_API_URL }}
       run: |
         source .venv/bin/activate
         python src/main.py \
@@ -59,4 +70,4 @@ jobs:
           --pr-number ${{ github.event.pull_request.number }} \
           --base-sha ${{ github.event.pull_request.base.sha }} \
           --head-sha ${{ github.event.pull_request.head.sha }} \
-          --api-url ${{ env.OLLAMA_API_URL }} 
+          --api-url ${{ env.LLM_API_URL }} 
