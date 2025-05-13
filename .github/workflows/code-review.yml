@@ -39,28 +39,20 @@ jobs:
           ${{ runner.os }}-venv-
         max-age: 7d  # 캐시 만료 시간 7일
 
-    - name: Install SSH key
-      uses: webfactory/ssh-agent@v0.8.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-    - name: Add host key
-      run: |
-        mkdir -p ~/.ssh
-        ssh-keyscan -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m venv .venv
         source .venv/bin/activate
         pip install --no-cache-dir -r requirements.txt
+        pip install pexpect
 
     - name: Run code review
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
         LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
+        LLM_SERVER_PASSWORD: ${{ secrets.LLM_SERVER_PASSWORD }}
         LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
         LLM_API_URL: ${{ secrets.LLM_API_URL }}
       run: |

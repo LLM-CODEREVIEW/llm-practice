@@ -9,6 +9,7 @@ import re
 import subprocess
 import atexit
 import signal
+import pexpect
 
 class CodeLlamaReviewer:
     def __init__(self, api_url: str):
@@ -23,26 +24,20 @@ class CodeLlamaReviewer:
         try:
             host = os.getenv('LLM_SERVER_HOST')
             user = os.getenv('LLM_SERVER_USER')
+            password = os.getenv('LLM_SERVER_PASSWORD')
             port = os.getenv('LLM_SERVER_PORT', '22')
             
-            if not all([host, user]):
+            if not all([host, user, password]):
                 logger.error("SSH 연결에 필요한 환경 변수가 설정되지 않았습니다.")
                 raise ValueError("Missing required environment variables for SSH connection")
 
-            # SSH 터널 설정
-            ssh_cmd = [
-                'ssh',
-                '-N',
-                '-L', '8080:localhost:11434',  # 로컬 8080 포트를 원격 서버의 11434 포트로 포워딩
-                f'{user}@{host}',
-                '-p', port
-            ]
+            # SSH 터널 설정 (pexpect 사용)
+            ssh_cmd = f'ssh -N -L 8080:localhost:11434 {user}@{host} -p {port}'
+            self.ssh_process = pexpect.spawn(ssh_cmd)
             
-            self.ssh_process = subprocess.Popen(
-                ssh_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
+            # 비밀번호 입력 대기
+            self.ssh_process.expect('password:')
+            self.ssh_process.sendline(password)
             
             # 프로세스 종료 시 SSH 터널도 종료되도록 설정
             atexit.register(self._cleanup_ssh_tunnel)
