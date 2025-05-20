@@ -20,7 +20,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-        cache: 'pip'  # pip 캐시 활성화
+        cache: 'pip'
 
     - name: Cache pip packages
       uses: actions/cache@v3
@@ -29,7 +29,7 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-        max-age: 7d  # 캐시 만료 시간 7일
+        max-age: 7d
 
     - name: Cache virtual environment
       uses: actions/cache@v3
@@ -38,7 +38,18 @@ jobs:
         key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-venv-
-        max-age: 7d  # 캐시 만료 시간 7일
+        max-age: 7d
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add host key
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -p ${{ secrets.LLM_SERVER_PORT }} -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
 
     - name: Install dependencies
       run: |
@@ -46,15 +57,13 @@ jobs:
         python -m venv .venv
         source .venv/bin/activate
         pip install --no-cache-dir -r requirements.txt
-        pip install pexpect
 
     - name: Run code review
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
-        LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
-        LLM_SERVER_PASSWORD: ${{ secrets.LLM_SERVER_PASSWORD }}
         LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
+        LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
         LLM_API_URL: ${{ secrets.LLM_API_URL }}
       run: |
         source .venv/bin/activate
@@ -63,4 +72,4 @@ jobs:
           --pr-number ${{ github.event.pull_request.number }} \
           --base-sha ${{ github.event.pull_request.base.sha }} \
           --head-sha ${{ github.event.pull_request.head.sha }} \
-          --api-url ${{ env.LLM_API_URL }} 
+          --api-url ${{ env.LLM_API_URL }}
