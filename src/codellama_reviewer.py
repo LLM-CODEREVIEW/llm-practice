@@ -24,30 +24,28 @@ class CodeLlamaReviewer:
         try:
             host = os.getenv('LLM_SERVER_HOST')
             user = os.getenv('LLM_SERVER_USER')
-            password = os.getenv('LLM_SERVER_PASSWORD')
             port = os.getenv('LLM_SERVER_PORT', '22')
             
-            if not all([host, user, password]):
+            if not all([host, user]):
                 logger.error("SSH 연결에 필요한 환경 변수가 설정되지 않았습니다.")
                 raise ValueError("Missing required environment variables for SSH connection")
 
-            # StrictHostKeyChecking=no 옵션 추가
+            # 공개키/개인키 인증을 사용하여 SSH 터널 설정
             ssh_cmd = f'ssh -o StrictHostKeyChecking=no -N -L 8080:localhost:11434 {user}@{host} -p {port}'
             self.ssh_process = pexpect.spawn(ssh_cmd)
             
+            # SSH 에이전트가 자동으로 개인키를 제공하므로 비밀번호 입력 대기 없이 바로 연결
             i = self.ssh_process.expect([
                 'Are you sure you want to continue connecting (yes/no/[fingerprint])?',
-                'password:',
                 pexpect.EOF,
                 pexpect.TIMEOUT
             ], timeout=30)
 
             if i == 0:
                 self.ssh_process.sendline('yes')
-                self.ssh_process.expect('password:')
-                self.ssh_process.sendline(password)
             elif i == 1:
-                self.ssh_process.sendline(password)
+                # 연결 성공
+                pass
             else:
                 raise Exception('SSH 연결 실패')
 
