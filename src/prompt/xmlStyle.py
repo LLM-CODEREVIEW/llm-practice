@@ -18,9 +18,9 @@ template = """
   </review-difficulty-criteria>
 
   <severity-criteria>
-    - 🔥 High: May cause runtime error, security breach, or data corruption  
-    - 🔥 Medium: Potential performance degradation or poor maintainability  
-    - 🔥 Low: Styling issue, naming inconsistency, or non-critical suggestions  
+    - 🟥 High: May cause runtime error, security breach, or data corruption  
+    - 🟧 Mediu: Potential performance degradation or poor maintainability  
+    - 🟨 Low: Styling issue, naming inconsistency, or non-critical suggestions  
   </severity-criteria>
 
   <instruction>
@@ -53,7 +53,7 @@ template = """
 ### 🔍 Detailed Review
 
 #### 1. **Function name uses discouraged 'get' prefix**  
-📌 Line 33 | 🔥 Severity: Medium | 🔎 Confidence: ⭐⭐⭐⭐ (4/5)  
+📌 Line 33 | 🔥 Severity: 🟧 Medium | 🔎 Confidence: ⭐⭐⭐⭐ (4/5)  
 The `getSevenDays()` function name violates Swift naming conventions.
 
 **💡 Suggestion:** Rename the function to improve clarity and follow naming standards.
@@ -64,7 +64,7 @@ func generateSevenDays() -> [ScheduleDate]
 
 #### 2. **Mixing Calendar.current and .gregorian**
 
-📌 Line 21 | 🔥 Severity: Medium | 🔎 Confidence: ⭐⭐ (2/5)
+📌 Line 21 | 🔥 Severity: 🟧 Medium | 🔎 Confidence: ⭐⭐ (2/5)
 Using both `Calendar.current` and `Calendar(identifier: .gregorian)` may introduce inconsistencies.
 
 **💡 Suggestion:** Declare a single calendar instance and reuse it consistently.
