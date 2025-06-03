@@ -1,4 +1,4 @@
-# reusable-review.yml (디버깅용 - SSH 조건 모두 제거)
+# reusable-review.yml (requirements.txt 포함 체크아웃)
 
 name: Reusable Code Review
 on:
@@ -39,6 +39,9 @@ jobs:
     environment: LLM_SERVER_HOST  # Environment 설정 추가
     steps:
     - uses: actions/checkout@v3
+      with:
+        repository: LLM-CODEREVIEW/llm-practice
+        path: ./code-review-bot
 
     - name: Set default values
       run: |
@@ -131,6 +134,7 @@ jobs:
 
     - name: Install dependencies
       run: |
+        cd ./code-review-bot
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
@@ -143,6 +147,7 @@ jobs:
         LLM_API_URL: ${{ env.LLM_API }}
         SSH_TUNNEL_ALREADY_SETUP: "true"
       run: |
+        cd ./code-review-bot
         echo "=== 코드 리뷰 실행 ==="
         echo "API URL: $LLM_API_URL"
         
