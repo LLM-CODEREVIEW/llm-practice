@@ -56,20 +56,20 @@ jobs:
         max-age: 7d
 
     - name: Setup SSH
-      if: ${{ secrets.SSH_PRIVATE_KEY != '' }}
+      if: ${{ secrets.SSH_PRIVATE_KEY }}
       uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
     - name: Add host key
-      if: ${{ secrets.LLM_SERVER_HOST != '' }}
+      if: ${{ secrets.LLM_SERVER_HOST }}
       run: |
         mkdir -p ~/.ssh
         ssh-keyscan -p ${{ secrets.LLM_SERVER_PORT }} -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
 
     - name: Test SSH Connection
-      if: ${{ secrets.LLM_SERVER_HOST != '' }}
+      if: ${{ secrets.LLM_SERVER_HOST }}
       run: |
         echo "=== SSH 연결 테스트 ==="
         ssh -o ConnectTimeout=15 \
@@ -81,7 +81,7 @@ jobs:
         }
 
     - name: Create SSH Tunnel to Ollama
-      if: ${{ secrets.LLM_SERVER_HOST != '' }}
+      if: ${{ secrets.LLM_SERVER_HOST }}
       run: |
         echo "=== SSH 터널 생성 ==="
         
