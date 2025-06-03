@@ -21,17 +21,27 @@ client = PersistentClient(path="./chroma_db", settings=chromadb.Settings(
     allow_reset=True
 ))
 
+print("=== ChromaDB 초기화 완료 ===")
+print(f"ChromaDB 경로: ./chroma_db")
+
 # Create separate collections for Java and Swift rules
 java_collection = client.get_or_create_collection(
     name="java_style_rules",
     metadata={"hnsw:space": "cosine"},
     embedding_function=None  # sentence-transformers를 직접 사용하므로 None
 )
+print("=== Java 컬렉션 생성 완료 ===")
+
 swift_collection = client.get_or_create_collection(
     name="swift_style_rules",
     metadata={"hnsw:space": "cosine"},
     embedding_function=None  # sentence-transformers를 직접 사용하므로 None
 )
+print("=== Swift 컬렉션 생성 완료 ===")
+
+# 컬렉션 목록 확인
+collections = client.list_collections()
+print(f"생성된 컬렉션 목록: {collections}")
 
 # Embed and store Java rules
 for rule in java_rules:

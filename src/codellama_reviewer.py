@@ -473,9 +473,15 @@ If no violations are found, return an empty array: []
             collection_name = f"{detected_language}_style_rules"
             
             try:
+                # 디버깅: 사용 가능한 컬렉션 목록 확인
+                collections = self.client.list_collections()
+                logger.info(f"사용 가능한 컬렉션 목록: {collections}")
+                
                 collection = self.client.get_collection(collection_name)
+                logger.info(f"컬렉션 '{collection_name}' 성공적으로 로드됨")
             except Exception as e:
                 logger.error(f"컬렉션 '{collection_name}'을 찾을 수 없습니다: {str(e)}")
+                logger.error(f"ChromaDB 경로: ./chroma_db")
                 return "not applicable"
 
             # 관련 컨벤션 가이드 수집
