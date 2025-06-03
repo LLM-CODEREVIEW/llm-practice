@@ -21,9 +21,10 @@ on:
         required: true
         type: string
     secrets:
-      LLM_API_URL:
-        required: false
       SSH_PRIVATE_KEY:
+        required: true  # 이것만 필수
+      # 나머지는 선택사항 (기본값 사용)
+      LLM_API_URL:
         required: false
       LLM_SERVER_HOST:
         required: false
@@ -39,6 +40,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Set default values
+      run: |
+        echo "=== 기본값 설정 ==="
+        echo "LLM_HOST=${{ secrets.LLM_SERVER_HOST || '203.253.25.170' }}" >> $GITHUB_ENV
+        echo "LLM_PORT=${{ secrets.LLM_SERVER_PORT || '2222' }}" >> $GITHUB_ENV
+        echo "LLM_USER=${{ secrets.LLM_SERVER_USER || 'ssu01' }}" >> $GITHUB_ENV
+        echo "LLM_API=${{ secrets.LLM_API_URL || 'http://localhost:11434' }}" >> $GITHUB_ENV
+        echo "사용할 서버: $LLM_USER@$LLM_HOST:$LLM_PORT"
+
     - name: Debug - Print inputs
       run: |
         echo "=== 디버깅 정보 ==="
@@ -46,9 +56,8 @@ jobs:
         echo "PR Number: ${{ inputs.pr-number }}"
         echo "Base SHA: ${{ inputs.base-sha }}"
         echo "Head SHA: ${{ inputs.head-sha }}"
-        echo "API URL: ${{ secrets.LLM_API_URL }}"
-        echo "SSH Host: ${{ secrets.LLM_SERVER_HOST }}"
-        echo "SSH User: ${{ secrets.LLM_SERVER_USER }}"
+        echo "사용할 서버: $LLM_USER@$LLM_HOST:$LLM_PORT"
+        echo "API URL: $LLM_API"
 
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.8.0
@@ -58,15 +67,15 @@ jobs:
     - name: Add host key
       run: |
         mkdir -p ~/.ssh
-        ssh-keyscan -p ${{ secrets.LLM_SERVER_PORT }} -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -p $LLM_PORT -H $LLM_HOST >> ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
 
     - name: Test SSH Connection
       run: |
         echo "=== SSH 연결 테스트 ==="
         ssh -o ConnectTimeout=15 \
-          -p ${{ secrets.LLM_SERVER_PORT }} \
-          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }} \
+          -p $LLM_PORT \
+          $LLM_USER@$LLM_HOST \
           "echo 'SSH 연결 성공: $(date)'" || {
           echo "❌ SSH 연결 실패"
           exit 1
@@ -75,8 +84,8 @@ jobs:
     - name: Check Remote Ollama Status
       run: |
         echo "=== 원격 서버 Ollama 상태 확인 ==="
-        ssh -p ${{ secrets.LLM_SERVER_PORT }} \
-          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }} \
+        ssh -p $LLM_PORT \
+          $LLM_USER@$LLM_HOST \
           "curl -s http://localhost:11434/api/tags | head -20" || {
           echo "❌ 원격 서버에서 Ollama 접근 실패"
           exit 1
@@ -89,8 +98,8 @@ jobs:
         ssh -f -N -L 11434:localhost:11434 \
           -o ServerAliveInterval=60 \
           -o ServerAliveCountMax=3 \
-          -p ${{ secrets.LLM_SERVER_PORT }} \
-          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }}
+          -p $LLM_PORT \
+          $LLM_USER@$LLM_HOST
         
         # 터널 연결 대기
         for i in {1..30}; do
@@ -128,10 +137,10 @@ jobs:
     - name: Run code review
       env:
         GITHUB_TOKEN: ${{ github.token }}
-        LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
-        LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
-        LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
-        LLM_API_URL: ${{ secrets.LLM_API_URL || 'http://localhost:11434' }}
+        LLM_SERVER_HOST: ${{ env.LLM_HOST }}
+        LLM_SERVER_PORT: ${{ env.LLM_PORT }}
+        LLM_SERVER_USER: ${{ env.LLM_USER }}
+        LLM_API_URL: ${{ env.LLM_API }}
         SSH_TUNNEL_ALREADY_SETUP: "true"
       run: |
         echo "=== 코드 리뷰 실행 ==="
