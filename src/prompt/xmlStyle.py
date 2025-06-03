@@ -36,9 +36,6 @@ template = """
        - Verify code convention compliance
        Only write comments when you detect an issue in each step.
     4. Summarize your findings using the format in &lt;output-format&gt;.
-
-    Do not copy or include the example in <output-format>. It is for formatting only.
-    Generate fresh review content based only on the <diff>.
   </instruction>
 
   <convention-guide>
