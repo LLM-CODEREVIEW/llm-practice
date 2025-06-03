@@ -1,7 +1,7 @@
 import requests
 import json
 from loguru import logger
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
@@ -12,11 +12,13 @@ import signal
 import socket
 import psutil
 from prompt.xmlStyle import template
-from coding_convention_verifier import CodingConventionVerifier
+from sentence_transformers import SentenceTransformer
+import chromadb
+from worker import get_convention_keyword_prompt, run_ollama, export_json_array
 
 
 class CodeLlamaReviewer:
-    def __init__(self, api_url: str):
+    def __init__(self, api_url: str, chroma_db_path: str = "./chroma_db"):
         logger.info("=== CodeLlamaReviewer 초기화 시작 ===")
         logger.info(f"입력된 api_url: {api_url}")
 
@@ -25,7 +27,10 @@ class CodeLlamaReviewer:
         self.ssh_process = None
         self.tunnel_port = 8080
         self.max_workers = 3
-        self.convention_verifier = CodingConventionVerifier()
+        
+        # CodingConventionVerifier 관련 초기화
+        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        self.client = chromadb.PersistentClient(path=chroma_db_path)
 
         # 환경 변수 확인
         self._log_environment_variables()
@@ -363,9 +368,110 @@ class CodeLlamaReviewer:
         logger.error("Ollama API 서버 연결 실패 - 모든 재시도 완료")
         raise Exception("Ollama API 서버에 연결할 수 없습니다")
 
+    def _detect_language(self, code: str) -> str:
+        """코드에서 언어를 감지합니다."""
+        if ".java" in code:
+            return "java"
+        elif ".swift" in code:
+            return "swift"
+        return "java"  # 기본값
+
+    def _call_ollama_api(self, prompt: str, system: str = None, model: str = "codellama:34b") -> str:
+        """Ollama API를 호출하여 응답을 받아옵니다."""
+        logger.info(f"=== Ollama API 호출 시작 ===")
+        logger.info(f"API URL: {self.api_url}/api/generate")
+        logger.info(f"요청 모델: {model}")
+        logger.info(f"프롬프트 길이: {len(prompt)} characters")
+        
+        if system:
+            logger.info(f"시스템 메시지 길이: {len(system)} characters")
+
+        request_data = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False
+        }
+        
+        if system:
+            request_data["system"] = system
+
+        try:
+            response = requests.post(
+                f"{self.api_url}/api/generate",
+                json=request_data,
+                timeout=300,  # 5분 타임아웃
+                headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'CodeReview-Bot/1.0'
+                }
+            )
+
+            if response.status_code != 200:
+                logger.error(f"=== API 호출 실패 상세 정보 ===")
+                logger.error(f"상태 코드: {response.status_code}")
+                logger.error(f"응답 헤더: {dict(response.headers)}")
+                logger.error(f"응답 내용: {response.text}")
+                logger.error(f"요청 URL: {response.url}")
+                raise Exception(f"Ollama API 호출 실패: {response.status_code}")
+
+            result = response.json()
+            return result.get('response', '')
+
+        except requests.exceptions.Timeout as e:
+            logger.error(f"API 요청 타임아웃: {str(e)}")
+            raise Exception("Ollama API 요청 타임아웃")
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"API 연결 오류: {str(e)}")
+            raise Exception(f"Ollama API 연결 오류: {str(e)}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"API 요청 오류: {str(e)}")
+            raise Exception(f"Ollama API 요청 오류: {str(e)}")
+        except Exception as e:
+            logger.error(f"Ollama API 호출 중 예상치 못한 오류: {str(e)}")
+            raise
+
+    def _get_convention_guide(self, code: str) -> str:
+        """코드에 대한 코딩 컨벤션 가이드를 검색합니다."""
+        # 코딩컨벤션 키워드 도출
+        convention_prompt = f"""
+You are a senior developer reviewing code style.
+
+Please analyze the following PR Diff and return any coding style violations you find
+as a JSON array of short English sentences. Only include the JSON array in your response.
+If there are no violations, return an empty array: []
+
+PR Diff: {code}
+"""
+        output_text = self._call_ollama_api(convention_prompt)
+        violation_sentences = export_json_array(output_text)
+
+        # VectorDB에서 관련 컨벤션 가이드 찾기
+        detected_language = self._detect_language(code)
+        collection_name = f"{detected_language}_style_rules"
+        collection = self.client.get_collection(collection_name)
+
+        # 관련 컨벤션 가이드 수집
+        convention_guide = ""
+        for sentence in violation_sentences:
+            vec = self.model.encode(sentence).tolist()
+            results = collection.query(query_embeddings=[vec], n_results=1)
+            for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
+                convention_guide += f"- [{meta['category']}] {doc.strip()}\n"
+
+        return convention_guide.strip() if convention_guide else "not applicable"
+
     def _create_prompt(self, code: str) -> str:
         """코드 리뷰를 위한 프롬프트를 생성합니다."""
-        return self.convention_verifier.create_review_prompt(code)
+        convention_guide = self._get_convention_guide(code)
+        
+        # xmlStyle.py의 템플릿 사용
+        final_prompt = (
+            template
+            .replace("{{CONVENTION_GUIDE_PLACEHOLDER}}", convention_guide)
+            .replace("{{PR_DIFF_PLACEHOLDER}}", code.strip())
+        )
+
+        return final_prompt
 
     def _parse_review_result(self, review_text: str) -> List[Dict[str, Any]]:
         """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다."""
@@ -420,71 +526,14 @@ class CodeLlamaReviewer:
         try:
             # 요청 데이터 준비
             prompt = self._create_prompt(content)
-            request_data = {
-                "model": "codellama:34b",
-                "prompt": prompt,
-                "system": "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.",
-                "stream": False
-            }
+            system_message = "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요."
             
-            # 상세 로깅 추가
-            logger.info(f"=== API 요청 상세 정보 ===")
-            logger.info(f"API URL: {self.api_url}/api/generate")
-            logger.info(f"요청 모델: {request_data['model']}")
-            logger.info(f"프롬프트 길이: {len(prompt)} characters")
-            logger.info(f"시스템 메시지 길이: {len(request_data['system'])} characters")
-            logger.info(f"전체 요청 데이터 크기: {len(str(request_data))} characters")
-            
-            # 프롬프트 일부 출력 (너무 길면 자름)
-            if len(prompt) > 500:
-                logger.info(f"프롬프트 샘플 (앞 500자):\n{prompt[:500]}...")
-            else:
-                logger.info(f"프롬프트 전체:\n{prompt}")
-
             # Ollama API 호출
-            logger.info(f"Ollama API 호출 시작...")
+            review_text = self._call_ollama_api(prompt, system_message)
             
-            response = requests.post(
-                f"{self.api_url}/api/generate",
-                json=request_data,
-                timeout=300,  # 5분 타임아웃
-                headers={
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'CodeReview-Bot/1.0'
-                }
-            )
-
-            elapsed_request_time = time.time() - start_time
-            logger.info(f"API 요청 완료 (소요시간: {elapsed_request_time:.2f}초)")
-            logger.info(f"API 응답 상태 코드: {response.status_code}")
-            logger.info(f"API 응답 헤더: {dict(response.headers)}")
-
-            if response.status_code != 200:
-                logger.error(f"=== API 호출 실패 상세 정보 ===")
-                logger.error(f"상태 코드: {response.status_code}")
-                logger.error(f"응답 헤더: {dict(response.headers)}")
-                logger.error(f"응답 내용: {response.text}")
-                logger.error(f"요청 URL: {response.url}")
-                logger.error(f"요청 시간: {elapsed_request_time:.2f}초")
-                return None
-
-            try:
-                result = response.json()
-                logger.info(f"JSON 파싱 성공")
-                logger.info(f"응답 키들: {list(result.keys())}")
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON 파싱 실패: {str(e)}")
-                logger.error(f"응답 내용 (텍스트): {response.text[:1000]}...")
-                return None
-
-            review_text = result.get('response', '')
-            logger.info(f"LLM 응답 길이: {len(review_text)} characters")
-            
-            if len(review_text) > 2000:
-                logger.info(f"[DEBUG] LLM 응답 (앞 2000자):\n{review_text[:2000]}...")
-            else:
-                logger.info(f"[DEBUG] LLM 응답 전체:\n{review_text}")
-
+            elapsed_time = time.time() - start_time
+            logger.info(f"파일 {filename} 리뷰 완료 (총 소요시간: {elapsed_time:.2f}초)")
+            print(review_text)
             try:
                 parsed_comments = self._parse_review_result(review_text)
                 logger.info(f"[DEBUG] 파싱된 리뷰 코멘트: {parsed_comments}")
@@ -492,27 +541,12 @@ class CodeLlamaReviewer:
                 logger.error(f"[DEBUG] 리뷰 파싱 중 예외 발생: {str(e)}")
                 parsed_comments = []
 
-            elapsed_time = time.time() - start_time
-            logger.info(f"파일 {filename} 리뷰 완료 (총 소요시간: {elapsed_time:.2f}초)")
-
             return {
                 'file': filename,
                 'review': review_text,
                 'comments': parsed_comments
             }
 
-        except requests.exceptions.Timeout as e:
-            logger.error(f"API 요청 타임아웃: {str(e)}")
-            logger.error(f"타임아웃 시간: 300초")
-            return None
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"API 연결 오류: {str(e)}")
-            logger.error(f"API URL: {self.api_url}")
-            return None
-        except requests.exceptions.RequestException as e:
-            logger.error(f"API 요청 오류: {str(e)}")
-            logger.error(f"요청 타입: {type(e).__name__}")
-            return None
         except Exception as e:
             logger.error(f"파일 {filename} 리뷰 중 예상치 못한 오류: {str(e)}")
             logger.error(f"오류 타입: {type(e).__name__}")

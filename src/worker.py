@@ -12,28 +12,6 @@ def export_json_array(text):
             pass
     return []
 
-# ollama 실행
-def run_ollama(prompt: str) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["ollama", "run", "llama3.2:latest"], #FIXME: LLM 모델 변경
-        input=prompt.encode("utf-8"),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=90
-    )
-
-# 코딩컨벤션 키워드 도출을 위한 프롬포트 질의
-def get_convention_keyword_prompt(diff_input: str) -> str:
-    return f"""
-You are a senior developer reviewing code style.
-
-Please analyze the following PR Diff and return any coding style violations you find
-as a JSON array of short English sentences. Only include the JSON array in your response.
-If there are no violations, return an empty array: []
-
-PR Diff: {diff_input}
-"""
-
 def detect_language(code):
     # Swift 코드 특징
     swift_patterns = [
