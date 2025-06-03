@@ -20,3 +20,7 @@ jobs:
       head-sha: ${{ github.event.pull_request.head.sha || 'HEAD' }}
     secrets:
       LLM_API_URL: ${{ secrets.LLM_API_URL }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
+      LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
+      LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}

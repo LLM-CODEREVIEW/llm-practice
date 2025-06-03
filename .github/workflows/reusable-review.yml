@@ -23,6 +23,14 @@ on:
     secrets:
       LLM_API_URL:
         required: false
+      SSH_PRIVATE_KEY:
+        required: false
+      LLM_SERVER_HOST:
+        required: false
+      LLM_SERVER_PORT:
+        required: false
+      LLM_SERVER_USER:
+        required: false
 
 jobs:
   code-review:
@@ -38,6 +46,51 @@ jobs:
         echo "Base SHA: ${{ inputs.base-sha }}"
         echo "Head SHA: ${{ inputs.head-sha }}"
         echo "API URL: ${{ secrets.LLM_API_URL }}"
+        echo "SSH Host: ${{ secrets.LLM_SERVER_HOST }}"
+        echo "SSH User: ${{ secrets.LLM_SERVER_USER }}"
+
+    - name: Check SSH availability
+      run: |
+        echo "=== SSH 가용성 확인 ==="
+        if [ -n "${{ secrets.SSH_PRIVATE_KEY }}" ] && [ -n "${{ secrets.LLM_SERVER_HOST }}" ]; then
+          echo "✅ SSH 설정이 있습니다 - SSH 터널을 사용합니다"
+          echo "USE_SSH=true" >> $GITHUB_ENV
+        else
+          echo "❌ SSH 설정이 없습니다 - 로컬 API를 사용합니다"
+          echo "USE_SSH=false" >> $GITHUB_ENV
+        fi
+
+    - name: Setup SSH (conditional)
+      if: env.USE_SSH == 'true'
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Create SSH Tunnel (conditional)
+      if: env.USE_SSH == 'true'
+      run: |
+        echo "=== SSH 터널 생성 시작 ==="
+        
+        # SSH 터널 생성
+        ssh -f -N -L 11434:localhost:11434 \
+          -o ServerAliveInterval=60 \
+          -o ServerAliveCountMax=3 \
+          -o StrictHostKeyChecking=no \
+          -p ${{ secrets.LLM_SERVER_PORT || '22' }} \
+          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }}
+        
+        # 터널 연결 대기
+        for i in {1..30}; do
+          if nc -z localhost 11434 2>/dev/null; then
+            echo "✅ SSH 터널 연결 성공 (${i}초 후)"
+            break
+          fi
+          sleep 1
+          if [ $i -eq 30 ]; then
+            echo "❌ SSH 터널 연결 타임아웃"
+            exit 1
+          fi
+        done
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -49,21 +102,25 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run code review (without SSH)
+    - name: Run code review (with conditional SSH)
       env:
         GITHUB_TOKEN: ${{ github.token }}
         LLM_API_URL: ${{ secrets.LLM_API_URL || 'http://localhost:11434' }}
       run: |
-        echo "=== 코드 리뷰 실행 (SSH 없이) ==="
+        echo "=== 코드 리뷰 실행 ==="
         echo "API URL: ${{ env.LLM_API_URL }}"
+        echo "SSH 사용: $USE_SSH"
         
-        # 우선 로컬 LLM 없이 테스트
-        echo "워크플로우가 여기까지 정상 실행됨!"
-        
-        # 실제 코드리뷰는 나중에 활성화
-        # python src/main.py \
-        #   --repo ${{ inputs.repository }} \
-        #   --pr-number ${{ inputs.pr-number }} \
-        #   --base-sha ${{ inputs.base-sha }} \
-        #   --head-sha ${{ inputs.head-sha }} \
-        #   --api-url ${{ env.LLM_API_URL }}
+        # 실제 코드리뷰 실행
+        python src/main.py \
+          --repo ${{ inputs.repository }} \
+          --pr-number ${{ inputs.pr-number }} \
+          --base-sha ${{ inputs.base-sha }} \
+          --head-sha ${{ inputs.head-sha }} \
+          --api-url ${{ env.LLM_API_URL }}
+
+    - name: Cleanup SSH tunnel
+      if: always() && env.USE_SSH == 'true'
+      run: |
+        echo "=== SSH 터널 정리 ==="
+        pkill -f "ssh.*11434:localhost:11434" && echo "SSH 터널 프로세스 종료됨" || echo "종료할 SSH 터널 프로세스 없음"
