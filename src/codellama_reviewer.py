@@ -460,9 +460,11 @@ class CodeLlamaReviewer:
             # 마크다운 형식에서 위반 사항 추출
             violation_sentences = []
             for line in output_text.split('\n'):
-                if line.startswith('- ') or line.startswith('* '):
+                # 들여쓰기 제거 후 확인
+                stripped_line = line.strip()
+                if stripped_line.startswith('- ') or stripped_line.startswith('* '):
                     # 마크다운 리스트 항목에서 위반 사항 추출
-                    violation = line.strip('- *').strip()
+                    violation = stripped_line.strip('- *').strip()
                     if violation:
                         violation_sentences.append(violation)
             
