@@ -1,8 +1,8 @@
-# your-code-review-project/.github/workflows/reusable-review.yml
+# reusable-review.yml (디버깅용 - SSH 조건 모두 제거)
 
 name: Reusable Code Review
 on:
-  workflow_call:  # 다른 워크플로우에서 호출 가능하게 함
+  workflow_call:
     inputs:
       repository:
         description: 'Target repository'
@@ -21,124 +21,49 @@ on:
         required: true
         type: string
     secrets:
-      LLM_SERVER_HOST:
-        required: false
-      LLM_SERVER_PORT:
-        required: false
-      LLM_SERVER_USER:
-        required: false
-      SSH_PRIVATE_KEY:
-        required: false
       LLM_API_URL:
         required: false
 
 jobs:
   code-review:
     runs-on: ubuntu-latest
-    environment: LLM_SERVER_HOST
     steps:
-    # 여기에 기존의 복잡한 모든 로직을 그대로 넣음
-    - uses: actions/checkout@v3  # 현재 리포지토리 (코드리뷰 봇)
+    - uses: actions/checkout@v3
+
+    - name: Debug - Print inputs
+      run: |
+        echo "=== 디버깅 정보 ==="
+        echo "Repository: ${{ inputs.repository }}"
+        echo "PR Number: ${{ inputs.pr-number }}"
+        echo "Base SHA: ${{ inputs.base-sha }}"
+        echo "Head SHA: ${{ inputs.head-sha }}"
+        echo "API URL: ${{ secrets.LLM_API_URL }}"
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-        cache: 'pip'
-
-    - name: Cache pip packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-        max-age: 7d
-
-    - name: Setup SSH
-      if: ${{ secrets.SSH_PRIVATE_KEY }}
-      uses: webfactory/ssh-agent@v0.8.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-    - name: Add host key
-      if: ${{ secrets.LLM_SERVER_HOST }}
-      run: |
-        mkdir -p ~/.ssh
-        ssh-keyscan -p ${{ secrets.LLM_SERVER_PORT }} -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
-        chmod 600 ~/.ssh/known_hosts
-
-    - name: Test SSH Connection
-      if: ${{ secrets.LLM_SERVER_HOST }}
-      run: |
-        echo "=== SSH 연결 테스트 ==="
-        ssh -o ConnectTimeout=15 \
-          -p ${{ secrets.LLM_SERVER_PORT }} \
-          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }} \
-          "echo 'SSH 연결 성공: $(date)'" || {
-          echo "❌ SSH 연결 실패"
-          exit 1
-        }
-
-    - name: Create SSH Tunnel to Ollama
-      if: ${{ secrets.LLM_SERVER_HOST }}
-      run: |
-        echo "=== SSH 터널 생성 ==="
-        
-        ssh -f -N -L 11434:localhost:11434 \
-          -o ServerAliveInterval=60 \
-          -o ServerAliveCountMax=3 \
-          -p ${{ secrets.LLM_SERVER_PORT }} \
-          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }} || {
-          echo "❌ SSH 터널 생성 실패"
-          exit 1
-        }
-        
-        # 터널 연결 대기
-        for i in {1..30}; do
-          if nc -z localhost 11434 2>/dev/null; then
-            echo "✅ SSH 터널 연결 성공 (${i}초 후)"
-            break
-          fi
-          sleep 1
-          if [ $i -eq 30 ]; then
-            echo "❌ SSH 터널 연결 타임아웃"
-            exit 1
-          fi
-        done
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m venv .venv
-        source .venv/bin/activate
-        pip install --no-cache-dir -r requirements.txt
-        pip install psutil
+        pip install -r requirements.txt
 
-    - name: Run code review
+    - name: Run code review (without SSH)
       env:
-        GITHUB_TOKEN: ${{ github.token }}  # 자동으로 제공되는 토큰 사용
-        LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
-        LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
-        LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
+        GITHUB_TOKEN: ${{ github.token }}
         LLM_API_URL: ${{ secrets.LLM_API_URL || 'http://localhost:11434' }}
-        SSH_TUNNEL_ALREADY_SETUP: "true"
       run: |
-        source .venv/bin/activate
+        echo "=== 코드 리뷰 실행 (SSH 없이) ==="
+        echo "API URL: ${{ env.LLM_API_URL }}"
         
-        echo "=== 코드 리뷰 실행 시작 ==="
-        echo "대상 리포지토리: ${{ inputs.repository }}"
-        echo "PR 번호: ${{ inputs.pr-number }}"
+        # 우선 로컬 LLM 없이 테스트
+        echo "워크플로우가 여기까지 정상 실행됨!"
         
-        python src/main.py \
-          --repo ${{ inputs.repository }} \
-          --pr-number ${{ inputs.pr-number }} \
-          --base-sha ${{ inputs.base-sha }} \
-          --head-sha ${{ inputs.head-sha }} \
-          --api-url ${{ env.LLM_API_URL }}
-
-    - name: Cleanup SSH tunnel
-      if: always()
-      run: |
-        echo "=== SSH 터널 정리 ==="
-        pkill -f "ssh.*11434:localhost:11434" && echo "SSH 터널 프로세스 종료됨" || echo "종료할 SSH 터널 프로세스 없음"
+        # 실제 코드리뷰는 나중에 활성화
+        # python src/main.py \
+        #   --repo ${{ inputs.repository }} \
+        #   --pr-number ${{ inputs.pr-number }} \
+        #   --base-sha ${{ inputs.base-sha }} \
+        #   --head-sha ${{ inputs.head-sha }} \
+        #   --api-url ${{ env.LLM_API_URL }}

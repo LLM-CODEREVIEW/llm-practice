@@ -1,9 +1,10 @@
-# 코드리뷰 프로젝트/.github/workflows/self-review.yml
+# self-review.yml (디버깅용 - 최소한의 설정)
 
-name: Self Code Review
+name: Self Code Review (Debug)
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:  # 수동 트리거 추가
 
 permissions:
   contents: read
@@ -11,16 +12,11 @@ permissions:
 
 jobs:
   review:
-    # 자기 자신의 reusable workflow를 호출
     uses: ./.github/workflows/reusable-review.yml
     with:
       repository: ${{ github.repository }}
-      pr-number: ${{ github.event.pull_request.number }}
-      base-sha: ${{ github.event.pull_request.base.sha }}
-      head-sha: ${{ github.event.pull_request.head.sha }}
+      pr-number: ${{ github.event.pull_request.number || 1 }}
+      base-sha: ${{ github.event.pull_request.base.sha || 'main' }}
+      head-sha: ${{ github.event.pull_request.head.sha || 'HEAD' }}
     secrets:
-      LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
-      LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
-      LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       LLM_API_URL: ${{ secrets.LLM_API_URL }}
