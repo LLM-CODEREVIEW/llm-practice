@@ -48,17 +48,8 @@ template = """
 - [Summary line 1]
 - [Summary line 2]
 - [Summary line 3]
-
----
-
-| Category            | Description                            |
-|---------------------|-----------------------------------------|
-| 🎯 Review Difficulty | ⭐⭐⭐ (3/5)                               |
-| 🔎 Confidence Score  | ⭐⭐⭐⭐ (4/5)                              |
-| 🔑 Key Keywords      | 네이밍, 상수, 포맷팅, 로그 등            |
-
----
-
+### 🎯 Review Difficulty: ⭐⭐⭐ (3/5)
+### 🔑 Key Keyword: 네이밍, 상수, 포맷팅, 로그 등
 ### 🔍 Detailed Review
 
 - ❗ Issue: 상수 'MaximumNumberOfLines'는 Swift 컨벤션(lowerCamelCase)을 따르지 않습니다.  
