@@ -19,6 +19,135 @@ class ReviewFormatter:
             "OTHER": "ℹ️"
         }
 
+    def create_unified_report(self, review_results: Dict[str, Any]) -> str:
+        """리뷰 결과를 하나의 통합된 리포트로 생성합니다."""
+        try:
+            logger.info("=== 통합 리포트 생성 시작 ===")
+            logger.debug(f"[DEBUG] review_results: {review_results}")
+
+            # 리포트 헤더
+            report = "# 🔍 코드 리뷰 결과\n\n"
+            
+            # PR 정보
+            pr_title = review_results.get('title', '')
+            if pr_title:
+                report += f"**PR 제목:** {pr_title}\n\n"
+
+            # 파일별 리뷰 결과 처리
+            file_summaries = review_results.get('file_summaries', [])
+            
+            if not file_summaries:
+                report += "리뷰할 변경사항이 없습니다.\n"
+                return report
+
+            total_files = len(file_summaries)
+            report += f"**총 {total_files}개 파일을 리뷰했습니다.**\n\n"
+
+            # 각 파일별 리뷰 결과
+            for file_summary in file_summaries:
+                file_name = file_summary.get('file', 'Unknown')
+                summary_text = file_summary.get('summary', '')
+                
+                report += f"## 📄 {file_name}\n\n"
+                
+                # 리뷰 내용 파싱 및 포맷팅
+                if summary_text and summary_text.strip() != "NO ISSUE":
+                    formatted_issues = self._format_file_issues(summary_text)
+                    if formatted_issues:
+                        report += formatted_issues + "\n\n"
+                    else:
+                        report += "특별한 이슈가 발견되지 않았습니다.\n\n"
+                else:
+                    report += "✅ 특별한 이슈가 발견되지 않았습니다.\n\n"
+
+            # 리포트 푸터
+            report += "---\n"
+            report += "🤖 *이 리뷰는 AI에 의해 자동 생성되었습니다.*\n"
+            
+            logger.info("통합 리포트 생성 완료")
+            return report
+
+        except Exception as e:
+            logger.error(f"Error creating unified report: {str(e)}")
+            raise
+
+    def _format_file_issues(self, summary_text: str) -> str:
+        """파일의 리뷰 내용을 포맷팅합니다."""
+        if not summary_text or summary_text.strip() == "NO ISSUE":
+            return ""
+
+        formatted = ""
+        
+        # Line으로 시작하는 이슈들을 찾아서 포맷팅
+        issues = self._parse_issues_from_text(summary_text)
+        
+        if issues:
+            for i, issue in enumerate(issues, 1):
+                line = issue.get('line', 'Unknown')
+                severity = issue.get('severity', 'LOW')
+                category = issue.get('category', 'OTHER')
+                description = issue.get('description', '')
+                proposal = issue.get('proposal', '')
+                
+                severity_emoji = self.severity_emoji.get(severity, "ℹ️")
+                category_emoji = self.category_emoji.get(category, "ℹ️")
+                
+                formatted += f"### {severity_emoji} 이슈 #{i} - 라인 {line}\n"
+                formatted += f"**심각도:** {severity_emoji} {severity} | **카테고리:** {category_emoji} {category}\n\n"
+                formatted += f"**설명:** {description}\n\n"
+                
+                if proposal:
+                    formatted += f"**개선 제안:**\n```\n{proposal}\n```\n\n"
+        else:
+            # 파싱된 이슈가 없으면 원본 텍스트를 그대로 사용
+            formatted = f"```\n{summary_text}\n```\n\n"
+        
+        return formatted
+
+    def _parse_issues_from_text(self, text: str) -> List[Dict[str, Any]]:
+        """텍스트에서 이슈들을 파싱합니다."""
+        issues = []
+        
+        # Line으로 시작하는 블록들을 찾음
+        blocks = re.split(r'\n(?=Line:|라인:)', text)
+        
+        for block in blocks:
+            if not block.strip():
+                continue
+                
+            issue = {}
+            
+            # 라인 번호 추출
+            line_match = re.search(r'(?:Line|라인):\s*(\d+)', block)
+            if line_match:
+                issue['line'] = line_match.group(1)
+            
+            # 심각도 추출
+            severity_match = re.search(r'(?:Severity|심각도):\s*(HIGH|MEDIUM|LOW)', block)
+            if severity_match:
+                issue['severity'] = severity_match.group(1)
+            
+            # 카테고리 추출
+            category_match = re.search(r'(?:Category|카테고리):\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)', block)
+            if category_match:
+                issue['category'] = category_match.group(1)
+            
+            # 설명 추출
+            description_match = re.search(r'(?:Description|설명):\s*(.*?)(?=\n(?:Proposed Solution|제안):|\Z)', block, re.DOTALL)
+            if description_match:
+                issue['description'] = description_match.group(1).strip()
+            
+            # 제안 추출
+            proposal_match = re.search(r'(?:Proposed Solution|제안):\s*(.*?)(?=\n(?:Line|라인):|\Z)', block, re.DOTALL)
+            if proposal_match:
+                issue['proposal'] = proposal_match.group(1).strip()
+            
+            # 필수 필드가 있으면 이슈로 추가
+            if issue.get('line') and issue.get('description'):
+                issues.append(issue)
+        
+        return issues
+
     def _parse_review_text(self, review_text: Union[str, List[str], Dict[str, Any]]) -> List[Dict[str, Any]]:
         """리뷰 텍스트를 파싱하여 이슈 목록을 생성합니다."""
         issues = []

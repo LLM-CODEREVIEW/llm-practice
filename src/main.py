@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 
 from pr_extractor import PRExtractor
 from codellama_reviewer import CodeLlamaReviewer
-from line_commenter import LineCommenter
 from review_formatter import ReviewFormatter
 from github_commenter import GitHubCommenter
 
@@ -38,19 +37,14 @@ def main():
         review_results = reviewer.review_code(pr_data)
         logger.info(f"[DEBUG] review_results: {review_results}")
 
-        # 라인별 코멘트 생성
-        commenter = LineCommenter()
-        line_comments = commenter.generate_comments(review_results, extractor)
-        logger.info(f"[DEBUG] line_comments: {line_comments}")
-
-        # 리뷰 결과 포맷팅
+        # 통합 리포트 생성
         formatter = ReviewFormatter()
-        formatted_review = formatter.format_review(review_results, line_comments)
-        logger.info(f"[DEBUG] formatted_review: {formatted_review}")
+        final_report = formatter.create_unified_report(review_results)
+        logger.info(f"[DEBUG] final_report: {final_report}")
 
-        # GitHub에 코멘트 게시
+        # GitHub에 통합 리포트 게시
         github_commenter = GitHubCommenter(args.repo, args.pr_number)
-        github_commenter.post_review(formatted_review, line_comments)
+        github_commenter.post_unified_report(final_report)
 
         logger.info("Code review completed successfully")
 
