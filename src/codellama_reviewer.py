@@ -30,10 +30,50 @@ class CodeLlamaReviewer:
         
         # CodingConventionVerifier 관련 초기화
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-        self.client = chromadb.PersistentClient(path=chroma_db_path, settings=chromadb.Settings(
-            anonymized_telemetry=False,
-            allow_reset=True
-        ))
+        
+        # ChromaDB 초기화
+        logger.info("=== ChromaDB 초기화 시작 ===")
+        try:
+            # 기존 DB 사용
+            self.client = chromadb.PersistentClient(
+                path=chroma_db_path,
+                settings=chromadb.Settings(
+                    anonymized_telemetry=False,
+                    allow_reset=True,
+                    is_persistent=True
+                )
+            )
+            logger.info(f"ChromaDB 클라이언트 초기화 성공: {chroma_db_path}")
+            
+            # 컬렉션이 없을 경우에만 생성
+            collections = self.client.list_collections()
+            logger.info(f"현재 컬렉션 목록: {collections}")
+            
+            if "java_style_rules" not in collections:
+                logger.info("Java 컬렉션 생성")
+                self.java_collection = self.client.get_or_create_collection(
+                    name="java_style_rules",
+                    metadata={"hnsw:space": "cosine"}
+                )
+            else:
+                logger.info("기존 Java 컬렉션 사용")
+                self.java_collection = self.client.get_collection("java_style_rules")
+                
+            if "swift_style_rules" not in collections:
+                logger.info("Swift 컬렉션 생성")
+                self.swift_collection = self.client.get_or_create_collection(
+                    name="swift_style_rules",
+                    metadata={"hnsw:space": "cosine"}
+                )
+            else:
+                logger.info("기존 Swift 컬렉션 사용")
+                self.swift_collection = self.client.get_collection("swift_style_rules")
+            
+            logger.info("컬렉션 초기화 완료")
+            
+        except Exception as e:
+            logger.error(f"ChromaDB 초기화 실패: {str(e)}")
+            raise
 
         # 환경 변수 확인
         self._log_environment_variables()
