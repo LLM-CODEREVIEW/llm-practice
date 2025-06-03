@@ -35,6 +35,7 @@ on:
 jobs:
   code-review:
     runs-on: ubuntu-latest
+    environment: LLM_SERVER_HOST  # Environment 설정 추가
     steps:
     - uses: actions/checkout@v3
 
@@ -49,34 +50,46 @@ jobs:
         echo "SSH Host: ${{ secrets.LLM_SERVER_HOST }}"
         echo "SSH User: ${{ secrets.LLM_SERVER_USER }}"
 
-    - name: Check SSH availability
-      run: |
-        echo "=== SSH 가용성 확인 ==="
-        if [ -n "${{ secrets.SSH_PRIVATE_KEY }}" ] && [ -n "${{ secrets.LLM_SERVER_HOST }}" ]; then
-          echo "✅ SSH 설정이 있습니다 - SSH 터널을 사용합니다"
-          echo "USE_SSH=true" >> $GITHUB_ENV
-        else
-          echo "❌ SSH 설정이 없습니다 - 로컬 API를 사용합니다"
-          echo "USE_SSH=false" >> $GITHUB_ENV
-        fi
-
-    - name: Setup SSH (conditional)
-      if: env.USE_SSH == 'true'
+    - name: Setup SSH
       uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Create SSH Tunnel (conditional)
-      if: env.USE_SSH == 'true'
+    - name: Add host key
       run: |
-        echo "=== SSH 터널 생성 시작 ==="
+        mkdir -p ~/.ssh
+        ssh-keyscan -p ${{ secrets.LLM_SERVER_PORT }} -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
+
+    - name: Test SSH Connection
+      run: |
+        echo "=== SSH 연결 테스트 ==="
+        ssh -o ConnectTimeout=15 \
+          -p ${{ secrets.LLM_SERVER_PORT }} \
+          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }} \
+          "echo 'SSH 연결 성공: $(date)'" || {
+          echo "❌ SSH 연결 실패"
+          exit 1
+        }
+
+    - name: Check Remote Ollama Status
+      run: |
+        echo "=== 원격 서버 Ollama 상태 확인 ==="
+        ssh -p ${{ secrets.LLM_SERVER_PORT }} \
+          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }} \
+          "curl -s http://localhost:11434/api/tags | head -20" || {
+          echo "❌ 원격 서버에서 Ollama 접근 실패"
+          exit 1
+        }
+
+    - name: Create SSH Tunnel
+      run: |
+        echo "=== SSH 터널 생성 ==="
         
-        # SSH 터널 생성
         ssh -f -N -L 11434:localhost:11434 \
           -o ServerAliveInterval=60 \
           -o ServerAliveCountMax=3 \
-          -o StrictHostKeyChecking=no \
-          -p ${{ secrets.LLM_SERVER_PORT || '22' }} \
+          -p ${{ secrets.LLM_SERVER_PORT }} \
           ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }}
         
         # 터널 연결 대기
@@ -92,6 +105,16 @@ jobs:
           fi
         done
 
+    - name: Test Ollama Connection Through Tunnel
+      run: |
+        echo "=== 터널을 통한 Ollama 연결 테스트 ==="
+        if curl -s --max-time 10 http://localhost:11434/api/tags; then
+          echo "✅ Ollama API 연결 성공"
+        else
+          echo "❌ Ollama API 연결 실패"
+          exit 1
+        fi
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -102,25 +125,27 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run code review (with conditional SSH)
+    - name: Run code review
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
+        LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
+        LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
         LLM_API_URL: ${{ secrets.LLM_API_URL || 'http://localhost:11434' }}
+        SSH_TUNNEL_ALREADY_SETUP: "true"
       run: |
         echo "=== 코드 리뷰 실행 ==="
-        echo "API URL: ${{ env.LLM_API_URL }}"
-        echo "SSH 사용: $USE_SSH"
+        echo "API URL: $LLM_API_URL"
         
-        # 실제 코드리뷰 실행
         python src/main.py \
           --repo ${{ inputs.repository }} \
           --pr-number ${{ inputs.pr-number }} \
           --base-sha ${{ inputs.base-sha }} \
           --head-sha ${{ inputs.head-sha }} \
-          --api-url ${{ env.LLM_API_URL }}
+          --api-url $LLM_API_URL
 
     - name: Cleanup SSH tunnel
-      if: always() && env.USE_SSH == 'true'
+      if: always()
       run: |
         echo "=== SSH 터널 정리 ==="
         pkill -f "ssh.*11434:localhost:11434" && echo "SSH 터널 프로세스 종료됨" || echo "종료할 SSH 터널 프로세스 없음"
