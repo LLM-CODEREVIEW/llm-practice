@@ -1,16 +1,46 @@
-name: Code Review
+# your-code-review-project/.github/workflows/reusable-review.yml
+
+name: Reusable Code Review
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-permissions:
-  contents: write
-  pull-requests: write
+  workflow_call:  # 다른 워크플로우에서 호출 가능하게 함
+    inputs:
+      repository:
+        description: 'Target repository'
+        required: true
+        type: string
+      pr-number:
+        description: 'Pull request number'
+        required: true
+        type: number
+      base-sha:
+        description: 'Base SHA'
+        required: true
+        type: string
+      head-sha:
+        description: 'Head SHA'
+        required: true
+        type: string
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+      LLM_SERVER_HOST:
+        required: false
+      LLM_SERVER_PORT:
+        required: false
+      LLM_SERVER_USER:
+        required: false
+      SSH_PRIVATE_KEY:
+        required: false
+      LLM_API_URL:
+        required: false
+
 jobs:
   code-review:
     runs-on: ubuntu-latest
     environment: LLM_SERVER_HOST
     steps:
-    - uses: actions/checkout@v3
+    # 여기에 기존의 복잡한 모든 로직을 그대로 넣음
+    - uses: actions/checkout@v3  # 현재 리포지토리 (코드리뷰 봇)
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -27,28 +57,21 @@ jobs:
           ${{ runner.os }}-pip-
         max-age: 7d
 
-    - name: Cache virtual environment
-      uses: actions/cache@v3
-      with:
-        path: .venv
-        key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-venv-
-        max-age: 7d
-
     - name: Setup SSH
+      if: ${{ secrets.SSH_PRIVATE_KEY != '' }}
       uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
     - name: Add host key
+      if: ${{ secrets.LLM_SERVER_HOST != '' }}
       run: |
         mkdir -p ~/.ssh
         ssh-keyscan -p ${{ secrets.LLM_SERVER_PORT }} -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
 
-    # 🔥 SSH 연결 테스트 먼저 수행
     - name: Test SSH Connection
+      if: ${{ secrets.LLM_SERVER_HOST != '' }}
       run: |
         echo "=== SSH 연결 테스트 ==="
         ssh -o ConnectTimeout=15 \
@@ -59,30 +82,11 @@ jobs:
           exit 1
         }
 
-    # 🔥 원격 서버에서 Ollama 상태 확인
-    - name: Check Remote Ollama Status
-      run: |
-        echo "=== 원격 서버 Ollama 상태 확인 ==="
-        ssh -p ${{ secrets.LLM_SERVER_PORT }} \
-          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }} \
-          "curl -s http://localhost:11434/api/tags | head -20" || {
-          echo "❌ 원격 서버에서 Ollama 접근 실패"
-          echo "Ollama가 실행 중인지 확인하세요"
-          exit 1
-        }
-
-    # 🔥 SSH 터널 생성
     - name: Create SSH Tunnel to Ollama
+      if: ${{ secrets.LLM_SERVER_HOST != '' }}
       run: |
         echo "=== SSH 터널 생성 ==="
         
-        # 포트 11434가 이미 사용 중인지 확인
-        if netstat -tuln | grep -q ":11434 "; then
-          echo "⚠️ 포트 11434가 이미 사용 중입니다"
-          netstat -tuln | grep ":11434"
-        fi
-        
-        # SSH 터널을 백그라운드에서 생성
         ssh -f -N -L 11434:localhost:11434 \
           -o ServerAliveInterval=60 \
           -o ServerAliveCountMax=3 \
@@ -92,11 +96,7 @@ jobs:
           exit 1
         }
         
-        echo "SSH 터널 프로세스 확인:"
-        ps aux | grep -E "ssh.*11434" | grep -v grep || true
-        
         # 터널 연결 대기
-        echo "터널 연결 대기 중..."
         for i in {1..30}; do
           if nc -z localhost 11434 2>/dev/null; then
             echo "✅ SSH 터널 연결 성공 (${i}초 후)"
@@ -105,29 +105,9 @@ jobs:
           sleep 1
           if [ $i -eq 30 ]; then
             echo "❌ SSH 터널 연결 타임아웃"
-            echo "현재 포트 상태:"
-            netstat -tuln | grep -E ":11434|:${{ secrets.LLM_SERVER_PORT }}"
             exit 1
           fi
         done
-
-    # 🔥 터널을 통한 Ollama 연결 테스트
-    - name: Test Ollama Connection Through Tunnel
-      run: |
-        echo "=== 터널을 통한 Ollama 연결 테스트 ==="
-        
-        echo "로컬 포트 11434 상태:"
-        netstat -tuln | grep ":11434" || echo "포트 11434 바인딩 없음"
-        
-        echo "Ollama API 테스트:"
-        if curl -s --max-time 10 http://localhost:11434/api/tags; then
-          echo "✅ Ollama API 연결 성공"
-        else
-          echo "❌ Ollama API 연결 실패"
-          echo "디버깅 정보:"
-          curl -v http://localhost:11434/api/tags || true
-          exit 1
-        fi
 
     - name: Install dependencies
       run: |
@@ -135,18 +115,7 @@ jobs:
         python -m venv .venv
         source .venv/bin/activate
         pip install --no-cache-dir -r requirements.txt
-        pip install psutil  # SSH 터널 관리용
-
-    # 🔥 환경 변수 확인
-    - name: Debug Environment Variables
-      run: |
-        echo "=== 환경 변수 확인 ==="
-        echo "LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}"
-        echo "LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}"
-        echo "LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}"
-        echo "LLM_API_URL: ${{ secrets.LLM_API_URL }}"
-        echo "GITHUB_REPOSITORY: ${{ github.repository }}"
-        echo "PR_NUMBER: ${{ github.event.pull_request.number }}"
+        pip install psutil
 
     - name: Run code review
       env:
@@ -154,36 +123,24 @@ jobs:
         LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
         LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
         LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
-        LLM_API_URL: ${{ secrets.LLM_API_URL }}  # http://localhost:11434
-        # 🔥 SSH 터널이 이미 설정되었음을 알리는 플래그
+        LLM_API_URL: ${{ secrets.LLM_API_URL || 'http://localhost:11434' }}
         SSH_TUNNEL_ALREADY_SETUP: "true"
       run: |
         source .venv/bin/activate
         
         echo "=== 코드 리뷰 실행 시작 ==="
-        echo "API URL: $LLM_API_URL"
-        echo "PR 번호: ${{ github.event.pull_request.number }}"
+        echo "대상 리포지토리: ${{ inputs.repository }}"
+        echo "PR 번호: ${{ inputs.pr-number }}"
         
         python src/main.py \
-          --repo ${{ github.repository }} \
-          --pr-number ${{ github.event.pull_request.number }} \
-          --base-sha ${{ github.event.pull_request.base.sha }} \
-          --head-sha ${{ github.event.pull_request.head.sha }} \
+          --repo ${{ inputs.repository }} \
+          --pr-number ${{ inputs.pr-number }} \
+          --base-sha ${{ inputs.base-sha }} \
+          --head-sha ${{ inputs.head-sha }} \
           --api-url ${{ env.LLM_API_URL }}
 
-    # 🔥 정리: SSH 터널 종료 (항상 실행)
     - name: Cleanup SSH tunnel
       if: always()
       run: |
         echo "=== SSH 터널 정리 ==="
-        
-        # SSH 터널 프로세스 확인
-        echo "SSH 터널 프로세스 목록:"
-        ps aux | grep -E "ssh.*11434" | grep -v grep || echo "SSH 터널 프로세스 없음"
-        
-        # SSH 터널 프로세스 종료
         pkill -f "ssh.*11434:localhost:11434" && echo "SSH 터널 프로세스 종료됨" || echo "종료할 SSH 터널 프로세스 없음"
-        
-        # 포트 상태 최종 확인
-        echo "포트 11434 최종 상태:"
-        netstat -tuln | grep ":11434" || echo "포트 11434 정리됨"
