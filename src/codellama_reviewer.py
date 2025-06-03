@@ -454,8 +454,17 @@ class CodeLlamaReviewer:
             """
             output_text = self._call_ollama_api(convention_prompt)
             logger.debug(f"Ollama API 응답: {output_text}")
-            violation_sentences = export_json_array(output_text)
-            logger.debug(f"파싱된 위반 사항: {violation_sentences}")
+            
+            # 마크다운 형식에서 위반 사항 추출
+            violation_sentences = []
+            for line in output_text.split('\n'):
+                if line.startswith('- ') or line.startswith('* '):
+                    # 마크다운 리스트 항목에서 위반 사항 추출
+                    violation = line.strip('- *').strip()
+                    if violation:
+                        violation_sentences.append(violation)
+            
+            logger.debug(f"추출된 위반 사항: {violation_sentences}")
 
             if not violation_sentences:
                 logger.info("코딩 컨벤션 위반 사항이 없습니다.")
