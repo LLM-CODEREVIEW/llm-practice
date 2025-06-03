@@ -1,3 +1,5 @@
+# 코드리뷰 프로젝트/.github/workflows/self-review.yml
+
 name: Self Code Review
 on:
   pull_request:
@@ -16,4 +18,9 @@ jobs:
       pr-number: ${{ github.event.pull_request.number }}
       base-sha: ${{ github.event.pull_request.base.sha }}
       head-sha: ${{ github.event.pull_request.head.sha }}
-    secrets: inherit
+    secrets:
+      LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
+      LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
+      LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      LLM_API_URL: ${{ secrets.LLM_API_URL }}
