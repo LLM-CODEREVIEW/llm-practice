@@ -1,0 +1,193 @@
+{
+  "java_style_guide_rules": [
+    {
+      "id": "junit5_library",
+      "category": "라이브러리",
+      "subcategory": "사용 라이브러리",
+      "title": "JUnit5 사용",
+      "rule": "테스트에는 JUnit5를 사용합니다.",
+      "examples": {
+        "good": "spring-boot-starter-test 의존성에 포함되어 있어 별도 추가 불필요",
+        "bad": "JUnit4 또는 다른 테스트 프레임워크 사용"
+      }
+    },
+    {
+      "id": "mockito_library",
+      "category": "라이브러리",
+      "subcategory": "사용 라이브러리",
+      "title": "Mockito 사용",
+      "rule": "Mock 객체 생성에는 Mockito를 사용합니다.",
+      "examples": {
+        "good": "spring-boot-starter-test 의존성에 포함되어 있어 별도 추가 불필요",
+        "bad": "다른 Mock 라이브러리 사용"
+      }
+    },
+    {
+      "id": "assertj_library",
+      "category": "라이브러리",
+      "subcategory": "사용 라이브러리",
+      "title": "AssertJ 사용",
+      "rule": "Assert 검증에는 AssertJ를 사용합니다.",
+      "examples": {
+        "good": "spring-boot-starter-test 의존성에 포함되어 있어 별도 추가 불필요",
+        "bad": "다른 Assert 라이브러리 사용"
+      }
+    },
+    {
+      "id": "test_class_naming",
+      "category": "네이밍",
+      "subcategory": "클래스",
+      "title": "테스트 클래스 네이밍",
+      "rule": "테스트하고자 하는 클래스의 이름과 접미사(suffix)로 Test를 붙입니다.",
+      "examples": {
+        "good": "public class EscrowServiceTest {\n  /** code **/\n}",
+        "bad": "public class EscrowServiceTests {\n  /** code **/\n}"
+      }
+    },
+    {
+      "id": "inner_class_structure",
+      "category": "네이밍",
+      "subcategory": "Inner Class",
+      "title": "Inner Class 구조",
+      "rule": "테스트할 메소드명 > Success > Fail로 구성하며, @Nested를 사용하여 계층구조로 출력되도록 합니다.",
+      "examples": {
+        "good": "public class EscrowServiceTest {\n  @Nested\n  class UpdateEscrowDeliveryStart {\n    @Nested\n    class Success {\n      /** success test code **/\n    }\n    @Nested\n    class Fail {\n      /** fail test code **/\n    }\n  }\n}",
+        "bad": "public class EscrowServiceTest {\n  // 평면적인 테스트 메소드들\n}"
+      }
+    },
+    {
+      "id": "method_name_nested",
+      "category": "네이밍",
+      "subcategory": "메소드명",
+      "title": "메소드명 @Nested 사용",
+      "rule": "반드시 테스트할 메소드명을 @Nested를 사용하여 기재합니다. 다른 팀원이 해당 메소드에 관한 테스트 코드가 있는지 확인을 쉽게 하기 위함입니다.",
+      "examples": {
+        "good": "@Nested\nclass UpdateEscrowDeliveryStart {\n  /** test code **/\n}",
+        "bad": "// 메소드명 없이 바로 테스트 케이스 작성"
+      }
+    },
+    {
+      "id": "actual_variable_naming",
+      "category": "네이밍",
+      "subcategory": "변수",
+      "title": "실제 결과값 변수 네이밍",
+      "rule": "실제 결과값에는 actual을 접미사(prefix)로 사용합니다.",
+      "examples": {
+        "good": "@DisplayName(\"Success\")\n@Test\nvoid successTest() throws Exception {\n  /** Given **/\n  boolean expected = false;\n  /** When **/\n  boolean actual = escrowValidator.isExistDeliveryInfo(deliveryDto);\n  /** Then **/\n  assertThat(actual).isEqualTo(expected);\n}",
+        "bad": "boolean result = escrowValidator.isExistDeliveryInfo(deliveryDto);"
+      }
+    },
+    {
+      "id": "expected_variable_naming",
+      "category": "네이밍",
+      "subcategory": "변수",
+      "title": "기대값 변수 네이밍",
+      "rule": "기대 값에는 expected를 접미사(prefix)로 사용합니다.",
+      "examples": {
+        "good": "boolean expected = false;\nassertThat(actual).isEqualTo(expected);",
+        "bad": "boolean expectedValue = false;\nboolean expect = false;"
+      }
+    },
+    {
+      "id": "display_name_annotation",
+      "category": "선언",
+      "subcategory": "어노테이션",
+      "title": "DisplayName 어노테이션 사용",
+      "rule": "DisplayName을 사용하여 어떤 테스트 케이스인지 한글로 기재합니다. When ~ Expected 구조로 작성합니다.",
+      "examples": {
+        "good": "@DisplayName(\"에스크로 PG가 아닐 때, True를 return 한다.\")\n@Test\nvoid notEscrowPg() throws Exception {\n  /** Given **/\n  DeliveryDto deliveryDto = DeliveryDto.builder().build();\n  /** When **/\n  boolean actual = escrowValidator.isNotValidDeliveryDto(deliveryDto);\n  /** Then **/\n  assertThat(actual).isTrue();\n}",
+        "bad": "@Test\nvoid notEscrowPg() throws Exception {\n  // DisplayName 없이 테스트\n}"
+      }
+    },
+    {
+      "id": "given_when_then_template",
+      "category": "그 외",
+      "subcategory": "템플릿",
+      "title": "Given-When-Then 템플릿",
+      "rule": "기본적으로 Given → When → Then 템플릿 구조를 따르지만 강제는 아니므로 축약해도 충분한 테스트라면 축약도 가능합니다.",
+      "examples": {
+        "good": "@DisplayName(\"에스크로 PG가 아닐 때, True를 return 한다.\")\n@Test\nvoid notEscrowPg() throws Exception {\n  /** Given **/\n  DeliveryDto deliveryDto = DeliveryDto.builder().build();\n  /** When **/\n  boolean actual = escrowValidator.isNotValidDeliveryDto(deliveryDto);\n  /** Then **/\n  assertThat(actual).isTrue();\n}",
+        "bad": "// Given-When-Then 구조 없이 작성된 테스트"
+      }
+    },
+    {
+      "id": "when_then_combined",
+      "category": "그 외",
+      "subcategory": "템플릿",
+      "title": "When & Then 결합",
+      "rule": "예외 발생 테스트 등에서는 When & Then을 결합하여 사용할 수 있습니다.",
+      "examples": {
+        "good": "@DisplayName(\"적합하지 않은 PG일 경우 IllegalArgumentException 발생\")\n@Test\nvoid wrongPgKind() throws Exception {\n  /** When & Then **/\n  assertThatThrownBy(() -> {\n    escrowFactory.newInstanceByPgKind(PgKind.TOSS);\n  }).isInstanceOf(IllegalArgumentException.class).hasMessage(\"적합하지 않은 PG 입니다.\");\n  verify(slackService).sendFailMessage(anyString(), any(PgKind.class));\n}",
+        "bad": "// When과 Then을 분리하여 작성하여 복잡해진 예외 테스트"
+      }
+    },
+    {
+      "id": "assertj_variable_order",
+      "category": "그 외",
+      "subcategory": "변수 순서",
+      "title": "AssertJ 변수 순서",
+      "rule": "AssertJ는 actual, expected 순으로 변수를 지정하기 때문에 이를 따릅니다.",
+      "examples": {
+        "good": "assertThat(actual).isEqualTo(expected);",
+        "bad": "assertThat(expected).isEqualTo(actual);"
+      }
+    },
+    {
+      "id": "avoid_extracting",
+      "category": "그 외",
+      "subcategory": "extracting 미사용",
+      "title": "extracting 사용 지양",
+      "rule": "객체에서 필드를 뽑아서 비교하는 extracting 사용을 지양합니다. 문자열로 필드를 추출하기 때문에 실수할 소지가 있고, 가독성도 떨어집니다. 각 필드를 기본 assert문으로 비교합니다.",
+      "examples": {
+        "good": "assertThat(actualResponse).isNotNull();\nassertThat(actualResponse.getServiceGroupCode()).isEqualTo(ServiceGroupCode.STORE_GLOBAL);\nassertThat(actualResponse.getPgKind()).isEqualTo(PgKind.EXIMBAY);\nassertThat(actualResponse.getPgMid()).isEqualTo(expectedResponse.getMid());",
+        "bad": "assertThat(actualResponse)\n  .extracting(\"serviceGroupCode\", \"pgKind\", \"pgMid\")\n  .containsExactly(\n    ServiceGroupCode.STORE_GLOBAL, PgKind.EXIMBAY, expectedResponse.getMid()\n  );"
+      }
+    },
+    {
+      "id": "model_factory_pattern",
+      "category": "그 외",
+      "subcategory": "fixture",
+      "title": "Model Factory 패턴",
+      "rule": "factory 클래스를 이용하여 중복 코드를 제거하고 재사용성을 높입니다. 테스트 디렉토리 최상위에 fixture.factory 패키지를 구성합니다.",
+      "examples": {
+        "good": "public class PaymentInfoDtoBuilder {\n  private final PaymentInfoDto paymentInfoDto;\n  \n  private PaymentInfoDtoBuilder() {\n    paymentInfoDto = new PaymentInfoDto();\n    paymentInfoDto.setMemberUid(808080L);\n    paymentInfoDto.setTid(\"qKl56WYb7w4vZnjEJeQVxRaWZnkWb8PmOoBN0k12dzgRG9px\");\n  }\n  \n  public static PaymentInfoDtoBuilder builder() {\n    return new PaymentInfoDtoBuilder();\n  }\n  \n  public PaymentInfoDto build() {\n    return paymentInfoDto;\n  }\n  \n  public PaymentInfoDtoBuilder id(Long id) {\n    paymentInfoDto.setId(id);\n    return this;\n  }\n}",
+        "bad": "// 각 테스트마다 객체 생성 코드 중복"
+      }
+    },
+    {
+      "id": "factory_usage",
+      "category": "그 외",
+      "subcategory": "fixture",
+      "title": "Factory 사용법",
+      "rule": "테스트 케이스별로 Builder().build()를 호출해서 Model을 생성합니다.",
+      "examples": {
+        "good": "PaymentInfoDto paymentInfo = PaymentInfoDtoBuilder.builder()\n  .id(12345L)\n  .build();",
+        "bad": "PaymentInfoDto paymentInfo = new PaymentInfoDto();\npaymentInfo.setMemberUid(808080L);\npaymentInfo.setTid(\"qKl56WYb7w4vZnjEJeQVxRaWZnkWb8PmOoBN0k12dzgRG9px\");\npaymentInfo.setId(12345L);"
+      }
+    }
+  ],
+  "metadata": {
+    "source": "테스트 코드 컨벤션",
+    "version": "Java Spring Boot",
+    "framework": "JUnit5 + Mockito + AssertJ",
+    "total_rules": 15,
+    "categories": [
+      "라이브러리",
+      "네이밍",
+      "선언",
+      "그 외"
+    ],
+    "subcategories": [
+      "사용 라이브러리",
+      "클래스",
+      "Inner Class",
+      "메소드명",
+      "변수",
+      "어노테이션",
+      "템플릿", 
+      "변수 순서",
+      "extracting 미사용",
+      "fixture"
+    ]
+  }
+}

@@ -11,6 +11,8 @@ import atexit
 import signal
 import socket
 import psutil
+from prompt.xmlStyle import template
+from coding_convention_verifier import CodingConventionVerifier
 
 
 class CodeLlamaReviewer:
@@ -23,6 +25,7 @@ class CodeLlamaReviewer:
         self.ssh_process = None
         self.tunnel_port = 8080
         self.max_workers = 3
+        self.convention_verifier = CodingConventionVerifier()
 
         # 환경 변수 확인
         self._log_environment_variables()
@@ -362,37 +365,7 @@ class CodeLlamaReviewer:
 
     def _create_prompt(self, code: str) -> str:
         """코드 리뷰를 위한 프롬프트를 생성합니다."""
-        # patch에서 +로 시작하는 줄의 라인 번호 추출
-        patch_lines = []
-        for i, line in enumerate(code.split('\n'), 1):
-            if line.startswith('+') and not line.startswith('+++'):
-                patch_lines.append(i)
-        patch_line_str = ', '.join(map(str, patch_lines))
-        return f"""아래는 GitHub Pull Request의 diff patch입니다.
-
-- patch의 각 줄에서 +로 시작하는 줄(즉, 실제로 변경/추가된 코드)에만 코멘트를 달아주세요.
-- 반드시 아래 patch에서 +로 시작하는 줄의 라인 번호({patch_line_str})만 사용하세요.
-- patch에 없는 라인 번호는 절대 사용하지 마세요.
-- 아래 예시와 완전히 동일한 양식으로만 작성하세요.
-- 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.
-
-Line: [patch에서 +로 시작하는 줄의 실제 라인 번호]
-Severity: [HIGH|MEDIUM|LOW]
-Category: [BUG|PERFORMANCE|READABILITY|SECURITY|OTHER]
-Description: [문제 설명]
-Proposed Solution: [개선 방안]
-
-예시:
-Line: {patch_lines[0] if patch_lines else 1}
-Severity: HIGH
-Category: BUG
-Description: This line has a potential bug
-Proposed Solution: Fix the bug by doing X
-
-아래는 diff patch입니다:
-{code}
-
-리뷰 결과:"""
+        return self.convention_verifier.create_review_prompt(code)
 
     def _parse_review_result(self, review_text: str) -> List[Dict[str, Any]]:
         """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다."""
@@ -449,7 +422,7 @@ Proposed Solution: Fix the bug by doing X
             response = requests.post(
                 f"{self.api_url}/api/generate",
                 json={
-                    "model": "codellama:34b",
+                    "model": "qwen3:32b",
                     "prompt": self._create_prompt(content),
                     "system": "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.",
                     "stream": False

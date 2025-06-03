@@ -1,0 +1,405 @@
+{
+  "swift_style_guide_rules": [
+    {
+      "id": "indentation",
+      "category": "코드 레이아웃",
+      "subcategory": "들여쓰기 및 띄어쓰기",
+      "title": "들여쓰기 규칙",
+      "rule": "들여쓰기에는 탭(tab) 대신 2개의 space를 사용합니다.",
+      "examples": {
+        "good": "  // 2개의 space 사용",
+        "bad": "\t// 탭 사용"
+      }
+    },
+    {
+      "id": "colon_spacing",
+      "category": "코드 레이아웃",
+      "subcategory": "들여쓰기 및 띄어쓰기",
+      "title": "콜론 띄어쓰기",
+      "rule": "콜론(:)을 쓸 때에는 콜론의 오른쪽에만 공백을 둡니다.",
+      "examples": {
+        "good": "let names: [String: String]?",
+        "bad": "let names:[String:String]? 또는 let names : [String : String]?"
+      }
+    },
+    {
+      "id": "operator_overloading_spacing",
+      "category": "코드 레이아웃",
+      "subcategory": "들여쓰기 및 띄어쓰기",
+      "title": "연산자 오버로딩 띄어쓰기",
+      "rule": "연산자 오버로딩 함수 정의에서는 연산자와 괄호 사이에 한 칸 띄어씁니다.",
+      "examples": {
+        "good": "func ** (lhs: Int, rhs: Int)",
+        "bad": "func **(lhs: Int, rhs: Int)"
+      }
+    },
+    {
+      "id": "function_definition_line_break",
+      "category": "코드 레이아웃",
+      "subcategory": "줄바꿈",
+      "title": "함수 정의 줄바꿈",
+      "rule": "함수 정의가 최대 길이를 초과하는 경우에는 파라미터별로 줄바꿈합니다.",
+      "examples": {
+        "good": "func collectionView(\n  _ collectionView: UICollectionView,\n  cellForItemAt indexPath: IndexPath\n) -> UICollectionViewCell {",
+        "bad": "func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {"
+      }
+    },
+    {
+      "id": "function_call_line_break",
+      "category": "코드 레이아웃",
+      "subcategory": "줄바꿈",
+      "title": "함수 호출 줄바꿈",
+      "rule": "함수를 호출하는 코드가 최대 길이를 초과하는 경우에는 파라미터 이름을 기준으로 줄바꿈합니다.",
+      "examples": {
+        "good": "let actionSheet = UIActionSheet(\n  title: \"정말 계정을 삭제하실 건가요?\",\n  delegate: self,\n  cancelButtonTitle: \"취소\",\n  destructiveButtonTitle: \"삭제해주세요\"\n)",
+        "bad": "let actionSheet = UIActionSheet(title: \"정말 계정을 삭제하실 건가요?\", delegate: self, cancelButtonTitle: \"취소\", destructiveButtonTitle: \"삭제해주세요\")"
+      }
+    },
+    {
+      "id": "multiple_closures_line_break",
+      "category": "코드 레이아웃",
+      "subcategory": "줄바꿈",
+      "title": "다중 클로저 줄바꿈",
+      "rule": "파라미터에 클로저가 2개 이상 존재하는 경우에는 무조건 내려쓰기합니다.",
+      "examples": {
+        "good": "UIView.animate(\n  withDuration: 0.25,\n  animations: {\n    // doSomething()\n  },\n  completion: { finished in\n    // doSomething()\n  }\n)",
+        "bad": "UIView.animate(withDuration: 0.25, animations: { }, completion: { finished in })"
+      }
+    },
+    {
+      "id": "if_let_line_break",
+      "category": "코드 레이아웃",
+      "subcategory": "줄바꿈",
+      "title": "if let 구문 줄바꿈",
+      "rule": "if let 구문이 길 경우에는 줄바꿈하고 한 칸 들여씁니다.",
+      "examples": {
+        "good": "if let user = self.veryLongFunctionNameWhichReturnsOptionalUser(),\n   let name = user.veryLongFunctionNameWhichReturnsOptionalName(),\n  user.gender == .female {",
+        "bad": "if let user = self.veryLongFunctionNameWhichReturnsOptionalUser(), let name = user.veryLongFunctionNameWhichReturnsOptionalName(), user.gender == .female {"
+      }
+    },
+    {
+      "id": "guard_let_line_break",
+      "category": "코드 레이아웃",
+      "subcategory": "줄바꿈",
+      "title": "guard let 구문 줄바꿈",
+      "rule": "guard let 구문이 길 경우에는 줄바꿈하고 한 칸 들여씁니다. else는 guard와 같은 들여쓰기를 적용합니다.",
+      "examples": {
+        "good": "guard let user = self.veryLongFunctionNameWhichReturnsOptionalUser(),\n      let name = user.veryLongFunctionNameWhichReturnsOptionalName(),\n      user.gender == .female\nelse {\n  return\n}",
+        "bad": "guard let user = self.veryLongFunctionNameWhichReturnsOptionalUser(), let name = user.veryLongFunctionNameWhichReturnsOptionalName(), user.gender == .female else { return }"
+      }
+    },
+    {
+      "id": "max_line_length",
+      "category": "코드 레이아웃",
+      "subcategory": "최대 줄 길이",
+      "title": "최대 줄 길이 제한",
+      "rule": "한 줄은 최대 99자를 넘지 않아야 합니다.",
+      "examples": {
+        "good": "// 99자 이하의 코드 라인",
+        "bad": "// 99자를 초과하는 매우 긴 코드 라인으로 가독성을 해치는 경우"
+      }
+    },
+    {
+      "id": "empty_line_no_spaces",
+      "category": "코드 레이아웃",
+      "subcategory": "빈 줄",
+      "title": "빈 줄 공백 제거",
+      "rule": "빈 줄에는 공백이 포함되지 않도록 합니다.",
+      "examples": {
+        "good": "// 완전히 비어있는 줄",
+        "bad": "   // 공백이 포함된 빈 줄"
+      }
+    },
+    {
+      "id": "file_end_empty_line",
+      "category": "코드 레이아웃",
+      "subcategory": "빈 줄",
+      "title": "파일 끝 빈 줄",
+      "rule": "모든 파일은 빈 줄로 끝나도록 합니다.",
+      "examples": {
+        "good": "class MyClass {\n  // code\n}\n",
+        "bad": "class MyClass {\n  // code\n}"
+      }
+    },
+    {
+      "id": "mark_spacing",
+      "category": "코드 레이아웃",
+      "subcategory": "빈 줄",
+      "title": "MARK 구문 공백",
+      "rule": "MARK 구문 위와 아래에는 공백이 필요합니다.",
+      "examples": {
+        "good": "\n// MARK: Layout\n\noverride func layoutSubviews() {\n  // doSomething()\n}\n\n// MARK: Actions\n",
+        "bad": "// MARK: Layout\noverride func layoutSubviews() {"
+      }
+    },
+    {
+      "id": "import_ordering",
+      "category": "코드 레이아웃",
+      "subcategory": "임포트",
+      "title": "임포트 정렬",
+      "rule": "모듈 임포트는 알파벳 순으로 정렬합니다. 내장 프레임워크를 먼저 임포트하고, 빈 줄로 구분하여 서드파티 프레임워크를 임포트합니다.",
+      "examples": {
+        "good": "import UIKit\n\nimport SwiftyColor\nimport SwiftyImage\nimport Then\nimport URLNavigator",
+        "bad": "import Then\nimport UIKit\nimport SwiftyColor"
+      }
+    },
+    {
+      "id": "class_struct_naming",
+      "category": "네이밍",
+      "subcategory": "클래스와 구조체",
+      "title": "클래스와 구조체 네이밍",
+      "rule": "클래스와 구조체의 이름에는 UpperCamelCase를 사용합니다. 클래스 이름에는 접두사를 붙이지 않습니다.",
+      "examples": {
+        "good": "class SomeClass { }\nstruct SomeStructure { }",
+        "bad": "class someClass { }\nstruct someStructure { }\nclass NSSomeClass { }"
+      }
+    },
+    {
+      "id": "function_naming",
+      "category": "네이밍",
+      "subcategory": "함수",
+      "title": "함수 네이밍",
+      "rule": "함수 이름에는 lowerCamelCase를 사용합니다. 함수 이름 앞에는 되도록이면 get을 붙이지 않습니다.",
+      "examples": {
+        "good": "func name(for user: User) -> String?",
+        "bad": "func getName(for user: User) -> String?\nfunc Name(for user: User) -> String?"
+      }
+    },
+    {
+      "id": "action_function_naming",
+      "category": "네이밍",
+      "subcategory": "함수",
+      "title": "Action 함수 네이밍",
+      "rule": "Action 함수의 네이밍은 '주어 + 동사 + 목적어' 형태를 사용합니다. Tap은 touchUpInside, Press는 touchDown에 대응합니다.",
+      "examples": {
+        "good": "func backButtonDidTap() { }",
+        "bad": "func back() { }\nfunc pressBack() { }"
+      }
+    },
+    {
+      "id": "variable_naming",
+      "category": "네이밍",
+      "subcategory": "변수",
+      "title": "변수 네이밍",
+      "rule": "변수 이름에는 lowerCamelCase를 사용합니다.",
+      "examples": {
+        "good": "var userName: String",
+        "bad": "var UserName: String\nvar user_name: String"
+      }
+    },
+    {
+      "id": "constant_naming",
+      "category": "네이밍",
+      "subcategory": "상수",
+      "title": "상수 네이밍",
+      "rule": "상수 이름에는 lowerCamelCase를 사용합니다.",
+      "examples": {
+        "good": "let maximumNumberOfLines = 3",
+        "bad": "let MaximumNumberOfLines = 3\nlet MAX_LINES = 3"
+      }
+    },
+    {
+      "id": "enum_naming",
+      "category": "네이밍",
+      "subcategory": "열거형",
+      "title": "열거형 네이밍",
+      "rule": "enum의 이름에는 UpperCamelCase를 사용하고, 각 case에는 lowerCamelCase를 사용합니다.",
+      "examples": {
+        "good": "enum Result {\n  case success\n  case failure\n}",
+        "bad": "enum result {\n  case Success\n  case Failure\n}"
+      }
+    },
+    {
+      "id": "protocol_naming",
+      "category": "네이밍",
+      "subcategory": "프로토콜",
+      "title": "프로토콜 네이밍",
+      "rule": "프로토콜의 이름에는 UpperCamelCase를 사용합니다. 채택할 때는 콜론과 빈칸으로 구분합니다.",
+      "examples": {
+        "good": "protocol SomeProtocol { }\nstruct SomeStructure: SomeProtocol, AnotherProtocol { }",
+        "bad": "protocol someProtocol { }\nstruct SomeStructure:SomeProtocol,AnotherProtocol { }"
+      }
+    },
+    {
+      "id": "abbreviation_naming",
+      "category": "네이밍",
+      "subcategory": "약어",
+      "title": "약어 네이밍",
+      "rule": "약어로 시작하는 경우 소문자로 표기하고, 그 외의 경우에는 항상 대문자로 표기합니다.",
+      "examples": {
+        "good": "let userID: Int?\nlet html: String?\nlet websiteURL: URL?\nlet urlString: String?",
+        "bad": "let userId: Int?\nlet HTML: String?\nlet websiteUrl: NSURL?\nlet URLString: String?"
+      }
+    },
+    {
+      "id": "delegate_naming",
+      "category": "네이밍",
+      "subcategory": "Delegate",
+      "title": "Delegate 메서드 네이밍",
+      "rule": "Delegate 메서드는 프로토콜명으로 네임스페이스를 구분합니다.",
+      "examples": {
+        "good": "protocol UserCellDelegate {\n  func userCellDidSetProfileImage(_ cell: UserCell)\n  func userCell(_ cell: UserCell, didTapFollowButtonWith user: User)\n}",
+        "bad": "protocol UserCellDelegate {\n  func didSetProfileImage()\n  func followPressed(user: User)\n}"
+      }
+    },
+    {
+      "id": "closure_void_type",
+      "category": "클로저",
+      "subcategory": "타입 정의",
+      "title": "클로저 Void 타입",
+      "rule": "파라미터와 리턴 타입이 없는 Closure 정의시에는 () -> Void를 사용합니다.",
+      "examples": {
+        "good": "let completionBlock: (() -> Void)?",
+        "bad": "let completionBlock: (() -> ())?\nlet completionBlock: ((Void) -> (Void))?"
+      }
+    },
+    {
+      "id": "closure_parameter_parentheses",
+      "category": "클로저",
+      "subcategory": "파라미터",
+      "title": "클로저 파라미터 괄호",
+      "rule": "Closure 정의시 파라미터에는 괄호를 사용하지 않습니다.",
+      "examples": {
+        "good": "{ operation, responseObject in\n  // doSomething()\n}",
+        "bad": "{ (operation, responseObject) in\n  // doSomething()\n}"
+      }
+    },
+    {
+      "id": "closure_type_inference",
+      "category": "클로저",
+      "subcategory": "타입 추론",
+      "title": "클로저 타입 생략",
+      "rule": "Closure 정의시 가능한 경우 타입 정의를 생략합니다.",
+      "examples": {
+        "good": "completion: { finished in\n  // doSomething()\n}",
+        "bad": "completion: { (finished: Bool) -> Void in\n  // doSomething()\n}"
+      }
+    },
+    {
+      "id": "trailing_closure",
+      "category": "클로저",
+      "subcategory": "Trailing Closure",
+      "title": "Trailing Closure 사용",
+      "rule": "Closure 호출시 또다른 유일한 Closure를 마지막 파라미터로 받는 경우, 파라미터 이름을 생략합니다.",
+      "examples": {
+        "good": "UIView.animate(withDuration: 0.5) {\n  // doSomething()\n}",
+        "bad": "UIView.animate(withDuration: 0.5, animations: { () -> Void in\n  // doSomething()\n})"
+      }
+    },
+    {
+      "id": "explicit_self",
+      "category": "클래스와 구조체",
+      "subcategory": "self 사용",
+      "title": "명시적 self 사용",
+      "rule": "클래스와 구조체 내부에서는 self를 명시적으로 사용합니다.",
+      "examples": {
+        "good": "self.nameLabel.text = \"Hello\"",
+        "bad": "nameLabel.text = \"Hello\""
+      }
+    },
+    {
+      "id": "swift_struct_initializer",
+      "category": "클래스와 구조체",
+      "subcategory": "구조체 생성자",
+      "title": "Swift 구조체 생성자 사용",
+      "rule": "구조체를 생성할 때에는 Swift 구조체 생성자를 사용합니다.",
+      "examples": {
+        "good": "let frame = CGRect(x: 0, y: 0, width: 100, height: 100)",
+        "bad": "let frame = CGRectMake(0, 0, 100, 100)"
+      }
+    },
+    {
+      "id": "array_dictionary_syntax",
+      "category": "타입",
+      "subcategory": "컬렉션 타입",
+      "title": "배열과 딕셔너리 타입 표기",
+      "rule": "Array<T>와 Dictionary<T: U> 보다는 [T], [T: U]를 사용합니다.",
+      "examples": {
+        "good": "var messages: [String]?\nvar names: [Int: String]?",
+        "bad": "var messages: Array<String>?\nvar names: Dictionary<Int, String>?"
+      }
+    },
+    {
+      "id": "documentation_comments",
+      "category": "주석",
+      "subcategory": "문서화 주석",
+      "title": "문서화 주석",
+      "rule": "///를 사용해서 문서화에 사용되는 주석을 남깁니다.",
+      "examples": {
+        "good": "/// 사용자 프로필을 그려주는 뷰\nclass ProfileView: UIView {\n  /// 사용자 닉네임을 그려주는 라벨\n  var nameLabel: UILabel!\n}",
+        "bad": "// 사용자 프로필을 그려주는 뷰\nclass ProfileView: UIView {"
+      }
+    },
+    {
+      "id": "mark_comments",
+      "category": "주석",
+      "subcategory": "MARK 주석",
+      "title": "MARK 주석 사용",
+      "rule": "// MARK:를 사용해서 연관된 코드를 구분짓습니다.",
+      "examples": {
+        "good": "// MARK: Init\n\noverride init(frame: CGRect) {\n  // doSomething()\n}\n\n// MARK: Layout\n\noverride func layoutSubviews() {\n  // doSomething()\n}",
+        "bad": "override init(frame: CGRect) {\n  // doSomething()\n}\n\noverride func layoutSubviews() {\n  // doSomething()\n}"
+      }
+    },
+    {
+      "id": "variable_initialization",
+      "category": "프로그래밍 권장사항",
+      "subcategory": "변수 초기화",
+      "title": "변수 초기화와 Then 사용",
+      "rule": "가능하다면 변수를 정의할 때 함께 초기화하도록 합니다. Then을 사용하면 초기화와 함께 속성을 지정할 수 있습니다.",
+      "examples": {
+        "good": "let label = UILabel().then {\n  $0.textAlignment = .center\n  $0.textColor = .black\n  $0.text = \"Hello, World!\"\n}",
+        "bad": "let label = UILabel()\nlabel.textAlignment = .center\nlabel.textColor = .black\nlabel.text = \"Hello, World!\""
+      }
+    },
+    {
+      "id": "constants_enum_grouping",
+      "category": "프로그래밍 권장사항",
+      "subcategory": "상수 그룹화",
+      "title": "상수 enum 그룹화",
+      "rule": "상수를 정의할 때에는 enum을 만들어 비슷한 상수끼리 모아둡니다. struct 대신 enum을 사용하는 이유는 생성자가 제공되지 않는 자료형을 사용하기 위해서입니다.",
+      "examples": {
+        "good": "private enum Metric {\n  static let profileImageViewLeft = 10.f\n  static let profileImageViewRight = 10.f\n}\n\nprivate enum Font {\n  static let nameLabel = UIFont.boldSystemFont(ofSize: 14)\n}",
+        "bad": "let profileImageViewLeft = 10.f\nlet profileImageViewRight = 10.f\nlet nameLabel = UIFont.boldSystemFont(ofSize: 14)"
+      }
+    },
+    {
+      "id": "final_keyword",
+      "category": "프로그래밍 권장사항",
+      "subcategory": "final 키워드",
+      "title": "final 키워드 사용",
+      "rule": "더이상 상속이 발생하지 않는 클래스는 항상 final 키워드로 선언합니다.",
+      "examples": {
+        "good": "final class MyViewController: UIViewController {",
+        "bad": "class MyViewController: UIViewController {"
+      }
+    },
+    {
+      "id": "protocol_extension",
+      "category": "프로그래밍 권장사항",
+      "subcategory": "프로토콜 확장",
+      "title": "프로토콜 extension 사용",
+      "rule": "프로토콜을 적용할 때에는 extension을 만들어서 관련된 메서드를 모아둡니다.",
+      "examples": {
+        "good": "final class MyViewController: UIViewController {\n  // ...\n}\n\n// MARK: - UITableViewDataSource\n\nextension MyViewController: UITableViewDataSource {\n  // ...\n}\n\n// MARK: - UITableViewDelegate\n\nextension MyViewController: UITableViewDelegate {\n  // ...\n}",
+        "bad": "final class MyViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {\n  // ...\n}"
+      }
+    }
+  ],
+  "metadata": {
+    "source": "StyleShare Swift Style Guide",
+    "version": "Swift 4.2",
+    "license": "CC-BY-4.0",
+    "authors": ["전수열", "StyleShare"],
+    "total_rules": 32,
+    "categories": [
+      "코드 레이아웃",
+      "네이밍",
+      "클로저",
+      "클래스와 구조체",
+      "타입",
+      "주석",
+      "프로그래밍 권장사항"
+    ]
+  }
+}
