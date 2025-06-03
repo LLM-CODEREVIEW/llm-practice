@@ -30,10 +30,22 @@ class CodeLlamaReviewer:
         
         # CodingConventionVerifier 관련 초기화
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-        self.client = chromadb.PersistentClient(path=chroma_db_path, settings=chromadb.Settings(
-            anonymized_telemetry=False,
-            allow_reset=True
-        ))
+        
+        # ChromaDB 초기화
+        logger.info("=== ChromaDB 초기화 시작 ===")
+        try:
+            # 클라이언트 생성
+            self.client = chromadb.PersistentClient(
+                path=chroma_db_path,
+                settings=chromadb.Settings(
+                    anonymized_telemetry=False,
+                    allow_reset=True
+                )
+            )
+            
+        except Exception as e:
+            logger.error(f"ChromaDB 초기화 실패: {str(e)}")
+            raise
 
         # 환경 변수 확인
         self._log_environment_variables()
@@ -461,9 +473,9 @@ If no violations are found, return an empty array: []
             PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
-            violation_sentences=export_json_array(output_text)
             print(output_text)
-            print(violation_sentences)
+            violation_sentences=export_json_array(output_text)
+
             if not output_text:
                 logger.info("코딩 컨벤션 위반 사항이 없습니다.")
                 return "not applicable"
@@ -473,7 +485,12 @@ If no violations are found, return an empty array: []
             collection_name = f"{detected_language}_style_rules"
             
             try:
+                # 디버깅: 사용 가능한 컬렉션 목록 확인
+                collections = self.client.list_collections()
+                logger.info(f"사용 가능한 컬렉션 목록: {collections}")
+                
                 collection = self.client.get_collection(collection_name)
+                logger.info(f"컬렉션 '{collection_name}' 성공적으로 로드됨")
             except Exception as e:
                 logger.error(f"컬렉션 '{collection_name}'을 찾을 수 없습니다: {str(e)}")
                 return "not applicable"
@@ -508,6 +525,7 @@ If no violations are found, return an empty array: []
 
         try:
             convention_guide = self._get_convention_guide(code)
+            logger.info(f"코딩컨벤션 도출 {convention_guide}")
             
             # xmlStyle.py의 템플릿 사용
             if not hasattr(template, 'replace'):
