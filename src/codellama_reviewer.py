@@ -384,7 +384,7 @@ class CodeLlamaReviewer:
         return "java"  # 기본값
 
     # FIXME: LLM 모델 바꿔보기
-    def _call_ollama_api(self, prompt: str, model: str = "deepseek-coder:33b-instruct") -> str:
+    def _call_ollama_api(self, prompt: str, model: str = "codellama:34b-instruct") -> str:
         """Ollama API를 호출하여 응답을 받아옵니다."""
         logger.info(f"=== Ollama API 호출 시작 ===")
         logger.info(f"API URL: {self.api_url}/api/generate")
@@ -399,8 +399,6 @@ class CodeLlamaReviewer:
             You are a senior developer proficient in iOS and backend.
             Always write reviews in Korean, following core review principles.
             Only return the final answer. Do not include <think> or any internal reasoning tags
-            Do not copy or include the example in <output-format>. It is for formatting only.
-            Generate fresh review content based only on the <diff>.
         """
         }
 
