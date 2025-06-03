@@ -377,7 +377,7 @@ class CodeLlamaReviewer:
         return "java"  # 기본값
 
     # FIXME: LLM 모델 바꿔보기
-    def _call_ollama_api(self, prompt: str, system: str = None, model: str = "codellama:34b") -> str:
+    def _call_ollama_api(self, prompt: str, system: str = None, model: str = "qwen3:32b") -> str:
         """Ollama API를 호출하여 응답을 받아옵니다."""
         logger.info(f"=== Ollama API 호출 시작 ===")
         logger.info(f"API URL: {self.api_url}/api/generate")
@@ -407,6 +407,7 @@ class CodeLlamaReviewer:
                 }
             )
 
+
             if response.status_code != 200:
                 logger.error(f"=== API 호출 실패 상세 정보 ===")
                 logger.error(f"상태 코드: {response.status_code}")
@@ -414,7 +415,8 @@ class CodeLlamaReviewer:
                 logger.error(f"응답 내용: {response.text}")
                 logger.error(f"요청 URL: {response.url}")
                 raise Exception(f"Ollama API 호출 실패: {response.status_code}")
-
+            else:
+                print(response.status_code, response.text)
             result = response.json()
             return result.get('response', '')
 
