@@ -43,14 +43,6 @@ class CodeLlamaReviewer:
                 )
             )
             
-            # 연결 테스트
-            try:
-                collections = self.client.list_collections()
-                logger.info(f"ChromaDB 연결 성공: {len(collections)} 개의 컬렉션 발견")
-            except Exception as e:
-                logger.error(f"ChromaDB 연결 테스트 실패: {str(e)}")
-                raise
-            
         except Exception as e:
             logger.error(f"ChromaDB 초기화 실패: {str(e)}")
             raise
@@ -494,22 +486,13 @@ If no violations are found, return an empty array: []
             
             try:
                 # 디버깅: 사용 가능한 컬렉션 목록 확인
-                logger.info("=== list_collections 호출 전 ===")
-                logger.info(f"client 타입: {type(self.client)}")
-                logger.info(f"client 속성들: {dir(self.client)}")
-                
                 collections = self.client.list_collections()
-                
-                logger.info("=== list_collections 호출 후 ===")
-                logger.info(f"collections 타입: {type(collections)}")
-                logger.info(f"collections 값: {collections}")
                 logger.info(f"사용 가능한 컬렉션 목록: {collections}")
                 
                 collection = self.client.get_collection(collection_name)
                 logger.info(f"컬렉션 '{collection_name}' 성공적으로 로드됨")
             except Exception as e:
                 logger.error(f"컬렉션 '{collection_name}'을 찾을 수 없습니다: {str(e)}")
-                logger.error(f"ChromaDB 경로: ./chroma_db")
                 return "not applicable"
 
             # 관련 컨벤션 가이드 수집
@@ -542,6 +525,7 @@ If no violations are found, return an empty array: []
 
         try:
             convention_guide = self._get_convention_guide(code)
+            logger.info(f"코딩컨벤션 도출 {convention_guide}")
             
             # xmlStyle.py의 템플릿 사용
             if not hasattr(template, 'replace'):
