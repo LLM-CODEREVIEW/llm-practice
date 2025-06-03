@@ -14,7 +14,7 @@ import psutil
 from prompt.xmlStyle import template
 from sentence_transformers import SentenceTransformer
 import chromadb
-from worker import get_convention_keyword_prompt, run_ollama, export_json_array
+from worker import export_json_array
 
 
 class CodeLlamaReviewer:
@@ -432,33 +432,55 @@ class CodeLlamaReviewer:
 
     def _get_convention_guide(self, code: str) -> str:
         """코드에 대한 코딩 컨벤션 가이드를 검색합니다."""
-        # 코딩컨벤션 키워드 도출
-        convention_prompt = f"""
-You are a senior developer reviewing code style.
+        try:
+            # 코딩컨벤션 키워드 도출
+            convention_prompt = f"""
+            You are a senior developer reviewing code style.
+            
+            Please analyze the following PR Diff and return any coding style violations you find
+            as a JSON array of short English sentences. Only include the JSON array in your response.
+            If there are no violations, return an empty array: []
+            
+            PR Diff: {code}
+            """
+            output_text = self._call_ollama_api(convention_prompt)
+            violation_sentences = export_json_array(output_text)
 
-Please analyze the following PR Diff and return any coding style violations you find
-as a JSON array of short English sentences. Only include the JSON array in your response.
-If there are no violations, return an empty array: []
+            if not violation_sentences:
+                logger.info("코딩 컨벤션 위반 사항이 없습니다.")
+                return "not applicable"
 
-PR Diff: {code}
-"""
-        output_text = self._call_ollama_api(convention_prompt)
-        violation_sentences = export_json_array(output_text)
+            # VectorDB에서 관련 컨벤션 가이드 찾기
+            detected_language = self._detect_language(code)
+            collection_name = f"{detected_language}_style_rules"
+            
+            try:
+                collection = self.client.get_collection(collection_name)
+            except Exception as e:
+                logger.error(f"컬렉션 '{collection_name}'을 찾을 수 없습니다: {str(e)}")
+                return "not applicable"
 
-        # VectorDB에서 관련 컨벤션 가이드 찾기
-        detected_language = self._detect_language(code)
-        collection_name = f"{detected_language}_style_rules"
-        collection = self.client.get_collection(collection_name)
+            # 관련 컨벤션 가이드 수집
+            convention_guide = ""
+            for sentence in violation_sentences:
+                try:
+                    vec = self.model.encode(sentence).tolist()
+                    results = collection.query(query_embeddings=[vec], n_results=1)
+                    
+                    if not results["documents"] or not results["metadatas"]:
+                        continue
+                        
+                    for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
+                        convention_guide += f"- [{meta['category']}] {doc.strip()}\n"
+                except Exception as e:
+                    logger.error(f"문장 '{sentence}' 처리 중 오류 발생: {str(e)}")
+                    continue
 
-        # 관련 컨벤션 가이드 수집
-        convention_guide = ""
-        for sentence in violation_sentences:
-            vec = self.model.encode(sentence).tolist()
-            results = collection.query(query_embeddings=[vec], n_results=1)
-            for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
-                convention_guide += f"- [{meta['category']}] {doc.strip()}\n"
+            return convention_guide.strip() if convention_guide else "not applicable"
 
-        return convention_guide.strip() if convention_guide else "not applicable"
+        except Exception as e:
+            logger.error(f"코딩 컨벤션 가이드 생성 중 오류 발생: {str(e)}")
+            return "not applicable"
 
     def _create_prompt(self, code: str) -> str:
         """코드 리뷰를 위한 프롬프트를 생성합니다."""
@@ -533,7 +555,11 @@ PR Diff: {code}
             
             elapsed_time = time.time() - start_time
             logger.info(f"파일 {filename} 리뷰 완료 (총 소요시간: {elapsed_time:.2f}초)")
-            print(review_text)
+            
+            if not review_text:
+                logger.warning(f"리뷰 텍스트가 비어있습니다: {filename}")
+                return None
+
             try:
                 parsed_comments = self._parse_review_result(review_text)
                 logger.info(f"[DEBUG] 파싱된 리뷰 코멘트: {parsed_comments}")
