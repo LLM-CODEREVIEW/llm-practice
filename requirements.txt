@@ -10,4 +10,4 @@ sentence-transformers==2.5.1
 chromadb==0.4.24
 numpy<2.0.0
 pandas>=2.0.0 
-psutil>=5.9.0 
+psutil>=5.9.0
