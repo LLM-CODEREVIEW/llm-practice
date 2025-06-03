@@ -377,7 +377,7 @@ class CodeLlamaReviewer:
         return "java"  # 기본값
 
     # FIXME: LLM 모델 바꿔보기
-    def _call_ollama_api(self, prompt: str, system: str = None, model: str = "qwen3:32b") -> str:
+    def _call_ollama_api(self, prompt: str, system: str = None, model: str = "deepseek-coder:33b-instruct") -> str:
         """Ollama API를 호출하여 응답을 받아옵니다."""
         logger.info(f"=== Ollama API 호출 시작 ===")
         logger.info(f"API URL: {self.api_url}/api/generate")
