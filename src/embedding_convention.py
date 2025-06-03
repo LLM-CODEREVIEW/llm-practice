@@ -16,7 +16,7 @@ swift_rules = swift_data["swift_style_guide_rules"]
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 # Setup ChromaDB
-client = PersistentClient(path="chroma_db")
+client = PersistentClient(path="./chroma_db")
 
 # Create separate collections for Java and Swift rules
 java_collection = client.get_or_create_collection("java_style_rules")

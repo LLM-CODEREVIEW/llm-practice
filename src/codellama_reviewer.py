@@ -384,7 +384,7 @@ class CodeLlamaReviewer:
         return "java"  # 기본값
 
     # FIXME: LLM 모델 바꿔보기
-    def _call_ollama_api(self, prompt: str, model: str = "qwen3:32b") -> str:
+    def _call_ollama_api(self, prompt: str, model: str = "qwen2.5-coder:32b-instruct") -> str:
         """Ollama API를 호출하여 응답을 받아옵니다."""
         logger.info(f"=== Ollama API 호출 시작 ===")
         logger.info(f"API URL: {self.api_url}/api/generate")
@@ -453,7 +453,9 @@ class CodeLlamaReviewer:
             PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
+            logger.debug(f"Ollama API 응답: {output_text}")
             violation_sentences = export_json_array(output_text)
+            logger.debug(f"파싱된 위반 사항: {violation_sentences}")
 
             if not violation_sentences:
                 logger.info("코딩 컨벤션 위반 사항이 없습니다.")
