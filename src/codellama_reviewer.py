@@ -34,29 +34,22 @@ class CodeLlamaReviewer:
         # ChromaDB 초기화
         logger.info("=== ChromaDB 초기화 시작 ===")
         try:
-            # 기존 DB 사용
+            # 클라이언트 생성
             self.client = chromadb.PersistentClient(
                 path=chroma_db_path,
                 settings=chromadb.Settings(
                     anonymized_telemetry=False,
-                    allow_reset=True,
-                    is_persistent=True
+                    allow_reset=True
                 )
             )
-            logger.info(f"ChromaDB 클라이언트 초기화 성공: {chroma_db_path}")
             
-            # 컬렉션 직접 생성
-            self.java_collection = self.client.get_or_create_collection(
-                name="java_style_rules",
-                metadata={"hnsw:space": "cosine"},
-                embedding_function=None
-            )
-            self.swift_collection = self.client.get_or_create_collection(
-                name="swift_style_rules",
-                metadata={"hnsw:space": "cosine"},
-                embedding_function=None
-            )
-            logger.info("컬렉션 초기화 완료")
+            # 연결 테스트
+            try:
+                collections = self.client.list_collections()
+                logger.info(f"ChromaDB 연결 성공: {len(collections)} 개의 컬렉션 발견")
+            except Exception as e:
+                logger.error(f"ChromaDB 연결 테스트 실패: {str(e)}")
+                raise
             
         except Exception as e:
             logger.error(f"ChromaDB 초기화 실패: {str(e)}")

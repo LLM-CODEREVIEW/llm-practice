@@ -17,37 +17,43 @@ swift_rules = swift_data["swift_style_guide_rules"]
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 # Setup ChromaDB
-logger = logging.getLogger(__name__)
-logger.info("=== ChromaDB 초기화 시작 ===")
 try:
-    # 기존 DB 사용
+    # 클라이언트 생성
     client = PersistentClient(path="./chroma_db", settings=chromadb.Settings(
         anonymized_telemetry=False,
-        allow_reset=True,
-        is_persistent=True
+        allow_reset=True
     ))
-    logger.info(f"ChromaDB 클라이언트 초기화 성공: ./chroma_db")
     
-    # 컬렉션 직접 생성
-    java_collection = client.get_or_create_collection(
+    # 연결 테스트
+    try:
+        collections = client.list_collections()
+        print(f"ChromaDB 연결 성공: {len(collections)} 개의 컬렉션 발견")
+    except Exception as e:
+        print(f"ChromaDB 연결 테스트 실패: {str(e)}")
+        raise
+
+    # Create separate collections for Java and Swift rules
+    java_collection = client.create_collection(
         name="java_style_rules",
         metadata={"hnsw:space": "cosine"},
-        embedding_function=None
+        embedding_function=None  # sentence-transformers를 직접 사용하므로 None
     )
-    swift_collection = client.get_or_create_collection(
+    print("=== Java 컬렉션 생성 완료 ===")
+
+    swift_collection = client.create_collection(
         name="swift_style_rules",
         metadata={"hnsw:space": "cosine"},
-        embedding_function=None
+        embedding_function=None  # sentence-transformers를 직접 사용하므로 None
     )
-    logger.info("컬렉션 초기화 완료")
-    
-except Exception as e:
-    logger.error(f"ChromaDB 초기화 실패: {str(e)}")
-    raise
+    print("=== Swift 컬렉션 생성 완료 ===")
 
-# 컬렉션 목록 확인
-collections = client.list_collections()
-print(f"생성된 컬렉션 목록: {collections}")
+    # 컬렉션 목록 확인
+    collections = client.list_collections()
+    print(f"생성된 컬렉션 목록: {collections}")
+
+except Exception as e:
+    print(f"ChromaDB 초기화 실패: {str(e)}")
+    raise
 
 # Embed and store Java rules
 for rule in java_rules:
