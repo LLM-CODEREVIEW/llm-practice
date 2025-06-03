@@ -384,7 +384,7 @@ class CodeLlamaReviewer:
         return "java"  # 기본값
 
     # FIXME: LLM 모델 바꿔보기
-    def _call_ollama_api(self, prompt: str, model: str = "codellama:34b-instruct") -> str:
+    def _call_ollama_api(self, prompt: str, model: str = "qwen3:32b") -> str:
         """Ollama API를 호출하여 응답을 받아옵니다."""
         logger.info(f"=== Ollama API 호출 시작 ===")
         logger.info(f"API URL: {self.api_url}/api/generate")
@@ -444,27 +444,40 @@ class CodeLlamaReviewer:
         try:
             # 코딩컨벤션 키워드 도출
             convention_prompt = f"""
-            You are a senior developer reviewing code style.
-            
-            Please analyze the following PR Diff and return any coding style violations you find
-            as a JSON array of short English sentences. Only include the JSON array in your response.
-            If there are no violations, return an empty array: []
-            
-            PR Diff: {code}
+Please analyze the following PR Diff and return all coding convention violations
+as a JSON array of short, single-line English sentences.
+Each item must include the line number if available.
+
+Format example:
+[
+  "Line 33: Function name uses discouraged 'get' prefix.",
+  "Line 21: Mixing Calendar.current and .gregorian may cause inconsistencies."
+]
+
+If no violations are found, return: []
+Only return the JSON array.
+
+PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
             logger.debug(f"Ollama API 응답: {output_text}")
             
-            # 마크다운 형식에서 위반 사항 추출
+            # JSON 배열에서 위반 사항 추출
             violation_sentences = []
-            for line in output_text.split('\n'):
-                # 들여쓰기 제거 후 확인
-                stripped_line = line.strip()
-                if stripped_line.startswith('- ') or stripped_line.startswith('* '):
-                    # 마크다운 리스트 항목에서 위반 사항 추출
-                    violation = stripped_line.strip('- *').strip()
-                    if violation:
-                        violation_sentences.append(violation)
+            try:
+                # JSON 배열 찾기
+                json_match = re.search(r'\[\s*".*?"\s*\]', output_text, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                    violations = json.loads(json_str)
+                    if isinstance(violations, list):
+                        violation_sentences = violations
+                else:
+                    logger.warning("JSON 배열을 찾을 수 없습니다.")
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON 파싱 오류: {str(e)}")
+            except Exception as e:
+                logger.error(f"위반 사항 추출 중 오류 발생: {str(e)}")
             
             logger.debug(f"추출된 위반 사항: {violation_sentences}")
 
