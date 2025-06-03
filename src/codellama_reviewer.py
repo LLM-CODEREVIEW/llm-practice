@@ -45,30 +45,15 @@ class CodeLlamaReviewer:
             )
             logger.info(f"ChromaDB 클라이언트 초기화 성공: {chroma_db_path}")
             
-            # 컬렉션이 없을 경우에만 생성
-            collections = self.client.list_collections()
-            logger.info(f"현재 컬렉션 목록: {collections}")
-            
-            if "java_style_rules" not in collections:
-                logger.info("Java 컬렉션 생성")
-                self.java_collection = self.client.get_or_create_collection(
-                    name="java_style_rules",
-                    metadata={"hnsw:space": "cosine"}
-                )
-            else:
-                logger.info("기존 Java 컬렉션 사용")
-                self.java_collection = self.client.get_collection("java_style_rules")
-                
-            if "swift_style_rules" not in collections:
-                logger.info("Swift 컬렉션 생성")
-                self.swift_collection = self.client.get_or_create_collection(
-                    name="swift_style_rules",
-                    metadata={"hnsw:space": "cosine"}
-                )
-            else:
-                logger.info("기존 Swift 컬렉션 사용")
-                self.swift_collection = self.client.get_collection("swift_style_rules")
-            
+            # 컬렉션 직접 생성
+            self.java_collection = self.client.get_or_create_collection(
+                name="java_style_rules",
+                metadata={"hnsw:space": "cosine"}
+            )
+            self.swift_collection = self.client.get_or_create_collection(
+                name="swift_style_rules",
+                metadata={"hnsw:space": "cosine"}
+            )
             logger.info("컬렉션 초기화 완료")
             
         except Exception as e:

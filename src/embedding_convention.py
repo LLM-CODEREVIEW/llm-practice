@@ -2,6 +2,7 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 import json
 from chromadb import PersistentClient
+import logging
 
 # Load style rules JSON
 with open("src/style_guide/java_style_rules.json", encoding="utf-8") as f:
@@ -16,28 +17,31 @@ swift_rules = swift_data["swift_style_guide_rules"]
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 # Setup ChromaDB
-client = PersistentClient(path="./chroma_db", settings=chromadb.Settings(
-    anonymized_telemetry=False,
-    allow_reset=True
-))
-
-print("=== ChromaDB 초기화 완료 ===")
-print(f"ChromaDB 경로: ./chroma_db")
-
-# Create separate collections for Java and Swift rules
-java_collection = client.get_or_create_collection(
-    name="java_style_rules",
-    metadata={"hnsw:space": "cosine"},
-    embedding_function=None  # sentence-transformers를 직접 사용하므로 None
-)
-print("=== Java 컬렉션 생성 완료 ===")
-
-swift_collection = client.get_or_create_collection(
-    name="swift_style_rules",
-    metadata={"hnsw:space": "cosine"},
-    embedding_function=None  # sentence-transformers를 직접 사용하므로 None
-)
-print("=== Swift 컬렉션 생성 완료 ===")
+logger = logging.getLogger(__name__)
+logger.info("=== ChromaDB 초기화 시작 ===")
+try:
+    # 기존 DB 사용
+    client = PersistentClient(path="./chroma_db", settings=chromadb.Settings(
+        anonymized_telemetry=False,
+        allow_reset=True,
+        is_persistent=True
+    ))
+    logger.info(f"ChromaDB 클라이언트 초기화 성공: ./chroma_db")
+    
+    # 컬렉션 직접 생성
+    java_collection = client.get_or_create_collection(
+        name="java_style_rules",
+        metadata={"hnsw:space": "cosine"}
+    )
+    swift_collection = client.get_or_create_collection(
+        name="swift_style_rules",
+        metadata={"hnsw:space": "cosine"}
+    )
+    logger.info("컬렉션 초기화 완료")
+    
+except Exception as e:
+    logger.error(f"ChromaDB 초기화 실패: {str(e)}")
+    raise
 
 # 컬렉션 목록 확인
 collections = client.list_collections()
