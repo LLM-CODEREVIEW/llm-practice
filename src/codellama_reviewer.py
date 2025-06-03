@@ -30,7 +30,10 @@ class CodeLlamaReviewer:
         
         # CodingConventionVerifier 관련 초기화
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-        self.client = chromadb.PersistentClient(path=chroma_db_path)
+        self.client = chromadb.PersistentClient(path=chroma_db_path, settings=chromadb.Settings(
+            anonymized_telemetry=False,
+            allow_reset=True
+        ))
 
         # 환경 변수 확인
         self._log_environment_variables()
