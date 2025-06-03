@@ -11,31 +11,3 @@ def export_json_array(text):
         except json.JSONDecodeError:
             pass
     return []
-
-# Java/Swift 언어 판별(코딩컨벤션 VectorDB 참조용)
-def detect_language(code):
-    # Swift 코드 특징
-    swift_patterns = [
-        r'class\s+\w+:\s*UIViewController',
-        r'func\s+\w+\s*\(',
-        r'@IBAction',
-        r'override\s+func',
-        r'var\s+\w+:',
-        r'let\s+\w+:',
-    ]
-    
-    # Java 코드 특징
-    java_patterns = [
-        r'public\s+class\s+\w+',
-        r'private\s+class\s+\w+',
-        r'@Override',
-        r'public\s+void\s+\w+\s*\(',
-        r'private\s+void\s+\w+\s*\(',
-        r'String\s+\w+',
-    ]
-    
-    swift_matches = sum(1 for pattern in swift_patterns if re.search(pattern, code))
-    java_matches = sum(1 for pattern in java_patterns if re.search(pattern, code))
-    
-    return "swift" if swift_matches > java_matches else "java"
-

@@ -461,9 +461,9 @@ If no violations are found, return an empty array: []
             PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
-            violation_sentences=export_json_array(output_text)
             print(output_text)
-            print(violation_sentences)
+            violation_sentences=export_json_array(output_text)
+
             if not output_text:
                 logger.info("코딩 컨벤션 위반 사항이 없습니다.")
                 return "not applicable"
@@ -474,7 +474,15 @@ If no violations are found, return an empty array: []
             
             try:
                 # 디버깅: 사용 가능한 컬렉션 목록 확인
+                logger.info("=== list_collections 호출 전 ===")
+                logger.info(f"client 타입: {type(self.client)}")
+                logger.info(f"client 속성들: {dir(self.client)}")
+                
                 collections = self.client.list_collections()
+                
+                logger.info("=== list_collections 호출 후 ===")
+                logger.info(f"collections 타입: {type(collections)}")
+                logger.info(f"collections 값: {collections}")
                 logger.info(f"사용 가능한 컬렉션 목록: {collections}")
                 
                 collection = self.client.get_collection(collection_name)
