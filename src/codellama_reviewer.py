@@ -484,141 +484,57 @@ class CodeLlamaReviewer:
 
     def _create_prompt(self, code: str) -> str:
         """코드 리뷰를 위한 프롬프트를 생성합니다."""
-        convention_guide = self._get_convention_guide(code)
-        
-        # xmlStyle.py의 템플릿 사용
-        final_prompt = (
-            template
-            .replace("{{CONVENTION_GUIDE_PLACEHOLDER}}", convention_guide)
-            .replace("{{PR_DIFF_PLACEHOLDER}}", code.strip())
-        )
-
-        return final_prompt
-
-    def _parse_review_result(self, review_text: str) -> List[Dict[str, Any]]:
-        """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다."""
-        print(review_text)
-        comments = []
-        current_comment = {}
-
-        # 각 이슈 블록을 분리
-        blocks = re.split(r'\n(?=Line:|라인:)', review_text)
-
-        for block in blocks:
-            if not block.strip():
-                continue
-
-            # 필수 필드 확인
-            line_match = re.search(r'(?:Line|라인):\s*(\d+)', block)
-            severity_match = re.search(r'(?:Severity|심각도):\s*(HIGH|MEDIUM|LOW)', block)
-            category_match = re.search(r'(?:Category|카테고리):\s*(BUG|PERFORMANCE|READABILITY|SECURITY|OTHER)', block)
-            description_match = re.search(r'(?:Description|설명):\s*(.*?)(?=\n(?:Proposed Solution|제안):|\Z)', block,
-                                          re.DOTALL)
-            solution_match = re.search(r'(?:Proposed Solution|제안):\s*(.*?)(?=\n(?:Line|라인):|\Z)', block, re.DOTALL)
-
-            if not all([line_match, severity_match, category_match, description_match]):
-                logger.warning(f"[DEBUG] 필수 필드 누락된 블록: {block}")
-                continue
-
-            comment = {
-                'line': int(line_match.group(1)),
-                'severity': severity_match.group(1),
-                'category': category_match.group(1),
-                'description': description_match.group(1).strip(),
-                'proposal': solution_match.group(1).strip() if solution_match else ""
-            }
-            comments.append(comment)
-
-        return comments
-
-    def _review_single_file(self, file_data: Dict[str, Any]) -> Dict[str, Any]:
-        """단일 파일 리뷰 수행"""
-        filename = file_data.get('filename', '')
-        content = file_data.get('patch', '')
-
-        logger.info(f"=== 파일 리뷰 시작: {filename} ===")
-        logger.info(f"파일 크기 정보: {len(content)} characters, {len(content.split())} words, {len(content.splitlines())} lines")
-
-        if not content:
-            logger.warning(f"파일 내용이 비어있습니다: {filename}")
-            return None
-
-        start_time = time.time()
+        if not code:
+            logger.warning("입력된 코드가 비어있습니다.")
+            return ""
 
         try:
-            # 요청 데이터 준비
-            prompt = self._create_prompt(content)
-            system_message = "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요."
+            convention_guide = self._get_convention_guide(code)
             
-            # Ollama API 호출
-            review_text = self._call_ollama_api(prompt, system_message)
-            
-            elapsed_time = time.time() - start_time
-            logger.info(f"파일 {filename} 리뷰 완료 (총 소요시간: {elapsed_time:.2f}초)")
-            
-            if not review_text:
-                logger.warning(f"리뷰 텍스트가 비어있습니다: {filename}")
-                return None
+            # xmlStyle.py의 템플릿 사용
+            if not hasattr(template, 'replace'):
+                logger.error("template이 올바른 형식이 아닙니다.")
+                return code
 
-            try:
-                parsed_comments = self._parse_review_result(review_text)
-                logger.info(f"[DEBUG] 파싱된 리뷰 코멘트: {parsed_comments}")
-            except Exception as e:
-                logger.error(f"[DEBUG] 리뷰 파싱 중 예외 발생: {str(e)}")
-                parsed_comments = []
+            final_prompt = (
+                template
+                .replace("{{CONVENTION_GUIDE_PLACEHOLDER}}", convention_guide or "not applicable")
+                .replace("{{PR_DIFF_PLACEHOLDER}}", code.strip())
+            )
 
-            return {
-                'file': filename,
-                'review': review_text,
-                'comments': parsed_comments
-            }
-
+            return final_prompt
         except Exception as e:
-            logger.error(f"파일 {filename} 리뷰 중 예상치 못한 오류: {str(e)}")
-            logger.error(f"오류 타입: {type(e).__name__}")
-            import traceback
-            logger.error(f"스택 트레이스:\n{traceback.format_exc()}")
-            return None
+            logger.error(f"프롬프트 생성 중 오류 발생: {str(e)}")
+            return code  # 오류 발생 시 원본 코드 반환
 
-    def review_code(self, pr_data: dict) -> dict:
-        """PR의 코드를 리뷰 (파일별 summary만 생성)"""
+    def review_code(self, pr_data: str) -> str:
+        """PR의 코드를 리뷰하고 결과를 문자열로 반환합니다."""
         logger.info("=== 코드 리뷰 시작 ===")
 
+        if not pr_data:
+            logger.warning("PR 데이터가 비어있습니다.")
+            return "NO ISSUE"
+
         try:
-            review_results = []
-            changed_files = pr_data.get('changed_files', [])
+            # Ollama API 호출
+            prompt = self._create_prompt(pr_data)
+            if not prompt:
+                logger.warning("생성된 프롬프트가 비어있습니다.")
+                return "NO ISSUE"
 
-            logger.info(f"리뷰할 파일 수: {len(changed_files)}")
-            for i, file_data in enumerate(changed_files):
-                logger.info(f"  {i + 1}. {file_data.get('filename', 'Unknown')}")
-
-            # 병렬 처리로 파일 리뷰 수행
-            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                future_to_file = {
-                    executor.submit(self._review_single_file, file_data): file_data
-                    for file_data in changed_files
-                }
-
-                for future in as_completed(future_to_file):
-                    result = future.result()
-                    if result:
-                        # 파일별 summary만 남김
-                        review_results.append({
-                            'file': result['file'],
-                            'summary': result['review']
-                        })
-
-            logger.info(f"리뷰 완료된 파일 수: {len(review_results)}")
-
-            return {
-                'pr_number': pr_data.get('number', ''),
-                'title': pr_data.get('title', ''),
-                'file_summaries': review_results
-            }
+            system_message = "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요."
+            review_text = self._call_ollama_api(prompt, system_message)
+            
+            if not review_text:
+                logger.warning("리뷰 결과가 비어있습니다.")
+                return "NO ISSUE"
+            
+            logger.info(f"리뷰 완료 (텍스트 길이: {len(review_text)} characters)")
+            return review_text
 
         except Exception as e:
             logger.error(f"코드 리뷰 중 오류 발생: {str(e)}")
-            raise
+            return "리뷰 중 오류가 발생했습니다. 다시 시도해주세요."
 
     def post_review(self, pr_number: str, summary: str, line_comments: List[Dict[str, Any]]) -> None:
         """리뷰 결과를 GitHub PR에 포스팅합니다."""
