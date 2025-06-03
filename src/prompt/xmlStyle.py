@@ -36,6 +36,9 @@ template = """
        - Verify code convention compliance
        Only write comments when you detect an issue in each step.
     4. Summarize your findings using the format in &lt;output-format&gt;.
+
+    Do not copy or include the example in <output-format>. It is for formatting only.
+    Generate fresh review content based only on the <diff>.
   </instruction>
 
   <convention-guide>
@@ -52,7 +55,7 @@ template = """
 ### 🔑 Key Keyword: 네이밍, 상수, 포맷팅, 로그 등
 ### 🔍 Detailed Review
 
-#### 1. **Issue: Function name uses discouraged 'get' prefix**  
+#### 1. **Function name uses discouraged 'get' prefix**  
 📌 Line 33 | 🔥 Severity: Medium | 🔎 Confidence: ⭐⭐⭐⭐ (4/5)  
 The `getSevenDays()` function name violates Swift naming conventions.
 
@@ -62,7 +65,7 @@ The `getSevenDays()` function name violates Swift naming conventions.
 func generateSevenDays() -> [ScheduleDate]
 ```
 
-#### 2. **Issue: Mixing Calendar.current and .gregorian**
+#### 2. **Mixing Calendar.current and .gregorian**
 
 📌 Line 21 | 🔥 Severity: Medium | 🔎 Confidence: ⭐⭐ (2/5)
 Using both `Calendar.current` and `Calendar(identifier: .gregorian)` may introduce inconsistencies.
