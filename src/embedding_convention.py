@@ -19,8 +19,14 @@ model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 client = PersistentClient(path="./chroma_db")
 
 # Create separate collections for Java and Swift rules
-java_collection = client.get_or_create_collection("java_style_rules")
-swift_collection = client.get_or_create_collection("swift_style_rules")
+java_collection = client.get_or_create_collection(
+    name="java_style_rules",
+    metadata={"hnsw:space": "cosine"}
+)
+swift_collection = client.get_or_create_collection(
+    name="swift_style_rules",
+    metadata={"hnsw:space": "cosine"}
+)
 
 # Embed and store Java rules
 for rule in java_rules:
