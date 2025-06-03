@@ -52,21 +52,26 @@ template = """
 ### 🔑 Key Keyword: 네이밍, 상수, 포맷팅, 로그 등
 ### 🔍 Detailed Review
 
-- ❗ Issue: 상수 'MaximumNumberOfLines'는 Swift 컨벤션(lowerCamelCase)을 따르지 않습니다.  
-  📌 Line: 3, 🔥 Severity: Low  
-- 💡 Suggestion: 'maximumNumberOfLines'로 변경하세요.  
+#### 1. **Issue: Function name uses discouraged 'get' prefix**  
+📌 Line 33 | 🔥 Severity: Medium | 🔎 Confidence: ⭐⭐⭐⭐ (4/5)  
+The `getSevenDays()` function name violates Swift naming conventions.
 
-  ```swift
-  let maximumNumberOfLines = 3
-````
+**💡 Suggestion:** Rename the function to improve clarity and follow naming standards.
 
-* ❗ Issue: 'get' 접두사는 Swift 함수명에서 권장되지 않습니다.
-  📌 Line: 8, 🔥 Severity: Medium
-* 💡 Suggestion: 아래처럼 함수명을 개선하세요.
+```swift
+func generateSevenDays() -> [ScheduleDate]
+```
 
-  ```swift
-  func userName(for user: User) -> String?
-  ```
+#### 2. **Issue: Mixing Calendar.current and .gregorian**
+
+📌 Line 21 | 🔥 Severity: Medium | 🔎 Confidence: ⭐⭐ (2/5)
+Using both `Calendar.current` and `Calendar(identifier: .gregorian)` may introduce inconsistencies.
+
+**💡 Suggestion:** Declare a single calendar instance and reuse it consistently.
+
+```swift
+let calendar = Calendar(identifier: .gregorian)
+```
 
   ]]>
   </output-format>
