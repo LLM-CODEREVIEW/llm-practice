@@ -1,0 +1,19 @@
+name: Self Code Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    # 자기 자신의 reusable workflow를 호출
+    uses: ./.github/workflows/reusable-review.yml
+    with:
+      repository: ${{ github.repository }}
+      pr-number: ${{ github.event.pull_request.number }}
+      base-sha: ${{ github.event.pull_request.base.sha }}
+      head-sha: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit
