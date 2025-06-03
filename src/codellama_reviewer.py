@@ -437,18 +437,29 @@ class CodeLlamaReviewer:
         try:
             # 코딩컨벤션 키워드 도출
             convention_prompt = f"""
-            You are a senior developer reviewing code style.
-            
-            Please analyze the following PR Diff and return any coding style violations you find
-            as a JSON array of short English sentences. Only include the JSON array in your response.
-            If there are no violations, return an empty array: []
-            
+Your task is to detect coding convention violations in the provided xPR Diff.
+🛑 Output format requirement:
+- Return **only** a valid JSON array
+- **Do not include** any extra explanation, comments, markdown, or tags like <think>
+- Each array item must be **one short English sentence**
+- Each sentence should **begin with a line number**, e.g., "Line 12: ..."
+
+✅ Example output:
+[
+  "Line 10: Variable name 'X' does not follow camelCase convention.",
+  "Line 24: Avoid force-unwrapping optional value."
+]
+
+If no violations are found, return an empty array: []
+
+---
             PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
-            violation_sentences = export_json_array(output_text)
-
-            if not violation_sentences:
+            violation_sentences=export_json_array(output_text)
+            print(output_text)
+            print(violation_sentences)
+            if not output_text:
                 logger.info("코딩 컨벤션 위반 사항이 없습니다.")
                 return "not applicable"
 
@@ -478,7 +489,7 @@ class CodeLlamaReviewer:
                     logger.error(f"문장 '{sentence}' 처리 중 오류 발생: {str(e)}")
                     continue
 
-            return convention_guide.strip() if convention_guide else "not applicable"
+                return convention_guide.strip() if convention_guide else "not applicable"
 
         except Exception as e:
             logger.error(f"코딩 컨벤션 가이드 생성 중 오류 발생: {str(e)}")
