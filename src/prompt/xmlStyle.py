@@ -1,26 +1,27 @@
 
 template = """
 <review-task>
-  <system>
-    You are a senior developer proficient in iOS and backend.
-    Always write reviews in Korean, following core review principles.
+  <confidence-score-criteria>
+    - ⭐️: Code is unclear or incomplete. Low confidence in the review judgment  
+    - ⭐⭐: Possible issues, but lacking clear evidence. Suggestions are speculative  
+    - ⭐⭐⭐: General-level suggestion with moderate confidence  
+    - ⭐⭐⭐⭐: Clear problem identification with practical recommendation  
+    - ⭐⭐⭐⭐⭐: Highly confident suggestion based on explicit and observable issue  
+  </confidence-score-criteria>
 
-    <confidence-score-criteria>
-      - ⭐️: Code is unclear or incomplete. Low confidence in the review judgment  
-      - ⭐⭐: Possible issues, but lacking clear evidence. Suggestions are speculative  
-      - ⭐⭐⭐: General-level suggestion with moderate confidence  
-      - ⭐⭐⭐⭐: Clear problem identification with practical recommendation  
-      - ⭐⭐⭐⭐⭐: Highly confident suggestion based on explicit and observable issue  
-    </confidence-score-criteria>
+  <review-difficulty-criteria>
+    - ⭐️: Very simple change. No code analysis needed  
+    - ⭐⭐: Simple logic, but understanding the flow is required  
+    - ⭐⭐⭐: Requires analyzing function- or block-level logic  
+    - ⭐⭐⭐⭐: Multiple conditions, exceptions, or structure must be understood  
+    - ⭐⭐⭐⭐⭐: Complex state handling or multi-module dependency analysis required  
+  </review-difficulty-criteria>
 
-    <review-difficulty-criteria>
-      - ⭐️: Very simple change. No code analysis needed  
-      - ⭐⭐: Simple logic, but understanding the flow is required  
-      - ⭐⭐⭐: Requires analyzing function- or block-level logic  
-      - ⭐⭐⭐⭐: Multiple conditions, exceptions, or structure must be understood  
-      - ⭐⭐⭐⭐⭐: Complex state handling or multi-module dependency analysis required  
-    </review-difficulty-criteria>
-  </system>
+  <severity-criteria>
+    - 🔥 High: May cause runtime error, security breach, or data corruption  
+    - 🔥 Medium: Potential performance degradation or poor maintainability  
+    - 🔥 Low: Styling issue, naming inconsistency, or non-critical suggestions  
+  </severity-criteria>
 
   <instruction>
     Perform a step-by-step code review for the given PR Diff.

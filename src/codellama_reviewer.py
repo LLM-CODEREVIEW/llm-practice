@@ -377,24 +377,23 @@ class CodeLlamaReviewer:
         return "java"  # 기본값
 
     # FIXME: LLM 모델 바꿔보기
-    def _call_ollama_api(self, prompt: str, system: str = None, model: str = "deepseek-coder:33b-instruct") -> str:
+    def _call_ollama_api(self, prompt: str, model: str = "qwen3:32b") -> str:
         """Ollama API를 호출하여 응답을 받아옵니다."""
         logger.info(f"=== Ollama API 호출 시작 ===")
         logger.info(f"API URL: {self.api_url}/api/generate")
         logger.info(f"요청 모델: {model}")
         logger.info(f"프롬프트 길이: {len(prompt)} characters")
         
-        if system:
-            logger.info(f"시스템 메시지 길이: {len(system)} characters")
-
         request_data = {
             "model": model,
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            "system": """
+            You are a senior developer proficient in iOS and backend.
+            Always write reviews in Korean, following core review principles.
+            Only return the final answer. Do not include <think> or any internal reasoning tags.
+        """
         }
-        
-        if system:
-            request_data["system"] = system
 
         try:
             response = requests.post(
@@ -524,7 +523,7 @@ class CodeLlamaReviewer:
             if not prompt:
                 logger.warning("생성된 프롬프트가 비어있습니다.")
                 return "NO ISSUE"
-
+            
             review_text = self._call_ollama_api(prompt)
             
             if not review_text:
