@@ -30,7 +30,10 @@ class CodeLlamaReviewer:
         
         # CodingConventionVerifier 관련 초기화
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-        self.client = chromadb.PersistentClient(path=chroma_db_path)
+        self.client = chromadb.PersistentClient(path=chroma_db_path, settings=chromadb.Settings(
+            anonymized_telemetry=False,
+            allow_reset=True
+        ))
 
         # 환경 변수 확인
         self._log_environment_variables()
@@ -377,7 +380,7 @@ class CodeLlamaReviewer:
         return "java"  # 기본값
 
     # FIXME: LLM 모델 바꿔보기
-    def _call_ollama_api(self, prompt: str, model: str = "deepseek-coder:33b-instruct") -> str:
+    def _call_ollama_api(self, prompt: str, model: str = "qwen2.5-coder:32b-instruct") -> str:
         """Ollama API를 호출하여 응답을 받아옵니다."""
         logger.info(f"=== Ollama API 호출 시작 ===")
         logger.info(f"API URL: {self.api_url}/api/generate")
@@ -392,6 +395,8 @@ class CodeLlamaReviewer:
             You are a senior developer proficient in iOS and backend.
             Always write reviews in Korean, following core review principles.
             Only return the final answer. Do not include <think> or any internal reasoning tags.
+            Do not copy or include the example in <output-format>. It is for formatting only.
+            Generate fresh review content based only on the <diff>.
         """
         }
 
@@ -437,18 +442,29 @@ class CodeLlamaReviewer:
         try:
             # 코딩컨벤션 키워드 도출
             convention_prompt = f"""
-            You are a senior developer reviewing code style.
-            
-            Please analyze the following PR Diff and return any coding style violations you find
-            as a JSON array of short English sentences. Only include the JSON array in your response.
-            If there are no violations, return an empty array: []
-            
+Your task is to detect coding convention violations in the provided xPR Diff.
+🛑 Output format requirement:
+- Return **only** a valid JSON array
+- **Do not include** any extra explanation, comments, markdown, or tags like <think>
+- Each array item must be **one short English sentence**
+- Each sentence should **begin with a line number**, e.g., "Line 12: ..."
+
+✅ Example output:
+[
+  "Line 10: Variable name 'X' does not follow camelCase convention.",
+  "Line 24: Avoid force-unwrapping optional value."
+]
+
+If no violations are found, return an empty array: []
+
+---
             PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
-            violation_sentences = export_json_array(output_text)
-
-            if not violation_sentences:
+            violation_sentences=export_json_array(output_text)
+            print(output_text)
+            print(violation_sentences)
+            if not output_text:
                 logger.info("코딩 컨벤션 위반 사항이 없습니다.")
                 return "not applicable"
 
@@ -478,7 +494,7 @@ class CodeLlamaReviewer:
                     logger.error(f"문장 '{sentence}' 처리 중 오류 발생: {str(e)}")
                     continue
 
-            return convention_guide.strip() if convention_guide else "not applicable"
+                return convention_guide.strip() if convention_guide else "not applicable"
 
         except Exception as e:
             logger.error(f"코딩 컨벤션 가이드 생성 중 오류 발생: {str(e)}")
