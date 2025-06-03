@@ -39,6 +39,11 @@ class ReviewFormatter:
                 # LLM 결과를 거의 그대로 사용
                 if summary_text.strip() == "NO ISSUE":
                     report += "✅ 특별한 이슈가 발견되지 않았습니다.\n\n"
+                elif summary_text.strip():
+                    # LLM 출력을 그대로 추가
+                    report += f"{summary_text}\n\n"
+                else:
+                    report += "리뷰 결과가 없습니다.\n\n"
 
             # 리포트 푸터
             report += "---\n"

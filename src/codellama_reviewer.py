@@ -435,6 +435,7 @@ Proposed Solution: Fix the bug by doing X
         content = file_data.get('patch', '')
 
         logger.info(f"=== 파일 리뷰 시작: {filename} ===")
+        logger.info(f"파일 크기 정보: {len(content)} characters, {len(content.split())} words, {len(content.splitlines())} lines")
 
         if not content:
             logger.warning(f"파일 내용이 비어있습니다: {filename}")
@@ -443,31 +444,72 @@ Proposed Solution: Fix the bug by doing X
         start_time = time.time()
 
         try:
-            # Ollama API 호출
-            logger.info(f"Ollama API 호출 중: {self.api_url}/api/generate")
+            # 요청 데이터 준비
+            prompt = self._create_prompt(content)
+            request_data = {
+                "model": "codellama:34b",
+                "prompt": prompt,
+                "system": "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.",
+                "stream": False
+            }
+            
+            # 상세 로깅 추가
+            logger.info(f"=== API 요청 상세 정보 ===")
+            logger.info(f"API URL: {self.api_url}/api/generate")
+            logger.info(f"요청 모델: {request_data['model']}")
+            logger.info(f"프롬프트 길이: {len(prompt)} characters")
+            logger.info(f"시스템 메시지 길이: {len(request_data['system'])} characters")
+            logger.info(f"전체 요청 데이터 크기: {len(str(request_data))} characters")
+            
+            # 프롬프트 일부 출력 (너무 길면 자름)
+            if len(prompt) > 500:
+                logger.info(f"프롬프트 샘플 (앞 500자):\n{prompt[:500]}...")
+            else:
+                logger.info(f"프롬프트 전체:\n{prompt}")
 
+            # Ollama API 호출
+            logger.info(f"Ollama API 호출 시작...")
+            
             response = requests.post(
                 f"{self.api_url}/api/generate",
-                json={
-                    "model": "codellama:34b",
-                    "prompt": self._create_prompt(content),
-                    "system": "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요.",
-                    "stream": False
-                },
-                timeout=300  # 5분 타임아웃
+                json=request_data,
+                timeout=300,  # 5분 타임아웃
+                headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'CodeReview-Bot/1.0'
+                }
             )
 
+            elapsed_request_time = time.time() - start_time
+            logger.info(f"API 요청 완료 (소요시간: {elapsed_request_time:.2f}초)")
             logger.info(f"API 응답 상태 코드: {response.status_code}")
+            logger.info(f"API 응답 헤더: {dict(response.headers)}")
 
             if response.status_code != 200:
-                logger.error(f"API 호출 실패: {response.status_code}")
+                logger.error(f"=== API 호출 실패 상세 정보 ===")
+                logger.error(f"상태 코드: {response.status_code}")
+                logger.error(f"응답 헤더: {dict(response.headers)}")
                 logger.error(f"응답 내용: {response.text}")
+                logger.error(f"요청 URL: {response.url}")
+                logger.error(f"요청 시간: {elapsed_request_time:.2f}초")
                 return None
 
-            result = response.json()
-            review_text = result['response']
+            try:
+                result = response.json()
+                logger.info(f"JSON 파싱 성공")
+                logger.info(f"응답 키들: {list(result.keys())}")
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON 파싱 실패: {str(e)}")
+                logger.error(f"응답 내용 (텍스트): {response.text[:1000]}...")
+                return None
 
-            logger.info(f"[DEBUG] LLM 응답 원본:\n{review_text}")
+            review_text = result.get('response', '')
+            logger.info(f"LLM 응답 길이: {len(review_text)} characters")
+            
+            if len(review_text) > 2000:
+                logger.info(f"[DEBUG] LLM 응답 (앞 2000자):\n{review_text[:2000]}...")
+            else:
+                logger.info(f"[DEBUG] LLM 응답 전체:\n{review_text}")
 
             try:
                 parsed_comments = self._parse_review_result(review_text)
@@ -477,7 +519,7 @@ Proposed Solution: Fix the bug by doing X
                 parsed_comments = []
 
             elapsed_time = time.time() - start_time
-            logger.info(f"파일 {filename} 리뷰 완료 (소요시간: {elapsed_time:.2f}초)")
+            logger.info(f"파일 {filename} 리뷰 완료 (총 소요시간: {elapsed_time:.2f}초)")
 
             return {
                 'file': filename,
@@ -485,11 +527,23 @@ Proposed Solution: Fix the bug by doing X
                 'comments': parsed_comments
             }
 
+        except requests.exceptions.Timeout as e:
+            logger.error(f"API 요청 타임아웃: {str(e)}")
+            logger.error(f"타임아웃 시간: 300초")
+            return None
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"API 연결 오류: {str(e)}")
+            logger.error(f"API URL: {self.api_url}")
+            return None
         except requests.exceptions.RequestException as e:
-            logger.error(f"파일 {filename} 리뷰 중 API 요청 오류: {str(e)}")
+            logger.error(f"API 요청 오류: {str(e)}")
+            logger.error(f"요청 타입: {type(e).__name__}")
             return None
         except Exception as e:
-            logger.error(f"파일 {filename} 리뷰 중 오류 발생: {str(e)}")
+            logger.error(f"파일 {filename} 리뷰 중 예상치 못한 오류: {str(e)}")
+            logger.error(f"오류 타입: {type(e).__name__}")
+            import traceback
+            logger.error(f"스택 트레이스:\n{traceback.format_exc()}")
             return None
 
     def review_code(self, pr_data: dict) -> dict:
