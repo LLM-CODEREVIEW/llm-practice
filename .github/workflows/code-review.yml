@@ -1,18 +1,14 @@
 name: Code Review
-
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-
 permissions:
   contents: write
   pull-requests: write
-
 jobs:
   code-review:
     runs-on: ubuntu-latest
     environment: LLM_SERVER_HOST
-
     steps:
     - uses: actions/checkout@v3
 
@@ -51,6 +47,29 @@ jobs:
         ssh-keyscan -p ${{ secrets.LLM_SERVER_PORT }} -H ${{ secrets.LLM_SERVER_HOST }} >> ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
 
+    # 🔥 중요: SSH 터널 생성 단계 추가
+    - name: Create SSH Tunnel to Ollama
+      run: |
+        # SSH 터널을 백그라운드에서 생성
+        ssh -f -N -L 11434:localhost:11434 \
+          -p ${{ secrets.LLM_SERVER_PORT }} \
+          ${{ secrets.LLM_SERVER_USER }}@${{ secrets.LLM_SERVER_HOST }}
+        
+        # 터널 연결 대기
+        sleep 10
+        
+        # 터널 연결 확인
+        if ! nc -z localhost 11434; then
+          echo "❌ SSH 터널 연결 실패"
+          exit 1
+        fi
+        echo "✅ SSH 터널 연결 성공 (localhost:11434 -> ${{ secrets.LLM_SERVER_HOST }}:11434)"
+
+    # 터널 연결 테스트
+    - name: Test Ollama Connection
+      run: |
+        curl -s http://localhost:11434/api/tags || echo "Ollama 연결 테스트 실패"
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -64,7 +83,7 @@ jobs:
         LLM_SERVER_HOST: ${{ secrets.LLM_SERVER_HOST }}
         LLM_SERVER_PORT: ${{ secrets.LLM_SERVER_PORT }}
         LLM_SERVER_USER: ${{ secrets.LLM_SERVER_USER }}
-        LLM_API_URL: ${{ secrets.LLM_API_URL }}
+        LLM_API_URL: ${{ secrets.LLM_API_URL }}  # http://localhost:11434
       run: |
         source .venv/bin/activate
         python src/main.py \
@@ -73,3 +92,10 @@ jobs:
           --base-sha ${{ github.event.pull_request.base.sha }} \
           --head-sha ${{ github.event.pull_request.head.sha }} \
           --api-url ${{ env.LLM_API_URL }}
+
+    # 정리: SSH 터널 종료
+    - name: Cleanup SSH tunnel
+      if: always()
+      run: |
+        # SSH 터널 프로세스 종료
+        pkill -f "ssh.*11434:localhost:11434" || true
