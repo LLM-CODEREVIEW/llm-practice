@@ -8,5 +8,5 @@ loguru>=0.7.2
 pexpect>=4.9.0 
 sentence-transformers==2.5.1
 chromadb==0.4.24
-numpy>=1.24.0
+numpy<2.0.0
 pandas>=2.0.0 

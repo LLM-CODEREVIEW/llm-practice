@@ -369,6 +369,7 @@ class CodeLlamaReviewer:
 
     def _parse_review_result(self, review_text: str) -> List[Dict[str, Any]]:
         """LLM 리뷰 결과를 파싱하여 구조화된 형태로 변환합니다."""
+        print(review_text)
         comments = []
         current_comment = {}
 
