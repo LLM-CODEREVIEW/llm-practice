@@ -12,6 +12,7 @@ def export_json_array(text):
             pass
     return []
 
+# Java/Swift 언어 판별(코딩컨벤션 VectorDB 참조용)
 def detect_language(code):
     # Swift 코드 특징
     swift_patterns = [

@@ -376,6 +376,7 @@ class CodeLlamaReviewer:
             return "swift"
         return "java"  # 기본값
 
+    # FIXME: LLM 모델 바꿔보기
     def _call_ollama_api(self, prompt: str, system: str = None, model: str = "codellama:34b") -> str:
         """Ollama API를 호출하여 응답을 받아옵니다."""
         logger.info(f"=== Ollama API 호출 시작 ===")
@@ -522,8 +523,7 @@ class CodeLlamaReviewer:
                 logger.warning("생성된 프롬프트가 비어있습니다.")
                 return "NO ISSUE"
 
-            system_message = "한국어로 답하세요. 아래 양식 이외의 텍스트(요약, 인삿말, 기타 설명 등)는 한 글자도 쓰지 마세요. 반드시 아래 예시와 완전히 동일한 양식으로만 작성하세요. Line: ...으로 시작하지 않는 문장은 절대 쓰지 마세요. 만약 코멘트가 없다면 'NO ISSUE'라고만 답하세요."
-            review_text = self._call_ollama_api(prompt, system_message)
+            review_text = self._call_ollama_api(prompt)
             
             if not review_text:
                 logger.warning("리뷰 결과가 비어있습니다.")
