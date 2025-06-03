@@ -31,11 +31,13 @@ try:
     # 컬렉션 직접 생성
     java_collection = client.get_or_create_collection(
         name="java_style_rules",
-        metadata={"hnsw:space": "cosine"}
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=None
     )
     swift_collection = client.get_or_create_collection(
         name="swift_style_rules",
-        metadata={"hnsw:space": "cosine"}
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=None
     )
     logger.info("컬렉션 초기화 완료")
     
