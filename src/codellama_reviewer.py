@@ -409,7 +409,8 @@ class CodeLlamaReviewer:
             Only return the final answer. Do not include <think> or any internal reasoning tags.
             Do not copy or include the example in <output-format>. It is for formatting only.
             Generate fresh review content based only on the <diff>.
-        """
+            Detect all issues first, then group them by severity level in the final output.
+            """
         }
 
         try:

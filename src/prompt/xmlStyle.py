@@ -27,15 +27,25 @@ template = """
     Perform a step-by-step code review for the given PR Diff.
 
     Follow these steps:
+
     1. Read only the lines starting with '+' (ignore '-', ' ')
-    2. Understand what the code is trying to do
-    3. For each code block, think in the following order:
+    2. For each code block, analyze and detect issues in the following order:
        - Check for runtime errors or missing logging
-       - Consider performance optimization
+       - Consider performance bottlenecks
        - Evaluate security risks
-       - Verify code convention compliance
-       Only write comments when you detect an issue in each step.
-    4. Summarize your findings using the format in &lt;output-format&gt;.
+       - Verify code convention/style compliance
+    3. For every detected issue, write a detailed comment with:
+       - Line number
+       - Confidence score (⭐️~⭐⭐⭐⭐⭐)
+       - Explanation of the issue
+       - Suggested improvement
+    4. After identifying all issues, group them by **severity level** in the final output.
+       Use the following headers in order:
+         - `### 🟥 High Severity Issues`
+         - `### 🟧 Medium Severity Issues`
+         - `### 🟨 Low Severity Issues`
+
+    Do not include severity labels in each comment. Severity will be reflected in grouping only.
   </instruction>
 
   <convention-guide>
@@ -44,34 +54,43 @@ template = """
 
   <output-format>
     <![CDATA[
-### ✅ PR Summary in 3 Lines
+## ✅ PR Summary in 3 Lines
 - [Summary line 1]
 - [Summary line 2]
 - [Summary line 3]
-### 🎯 Review Difficulty: ⭐⭐⭐ (3/5)
-### 🔑 Key Keyword: 네이밍, 상수, 포맷팅, 로그 등
-### 🔍 Detailed Review
+## 🎯 Review Difficulty: ⭐⭐⭐ (3/5)
+## 🔑 Key Keyword: 네이밍, 상수, 포맷팅, 로그 등
 
-#### 1. **Function name uses discouraged 'get' prefix**  
-📌 Line 33 | 🔥 Severity: 🟧 Medium | 🔎 Confidence: ⭐⭐⭐⭐ (4/5)  
-The `getSevenDays()` function name violates Swift naming conventions.
+## 🔍 Detailed Review
 
-**💡 Suggestion:** Rename the function to improve clarity and follow naming standards.
+### 🟥 High Severity Issues
+#### 1. Null dereference risk
+📌 Line 52 | 🔎 Confidence: ⭐⭐⭐⭐  
+Exception handling is missing when accessing `data!`.
+
+**💡 Suggestion:** Add optional binding or guard statement.
 
 ```swift
-func generateSevenDays() -> [ScheduleDate]
+guard let value = data else { return }
 ```
 
-#### 2. **Mixing Calendar.current and .gregorian**
+### 🟧 Medium Severity Issues
+#### 2. Inefficient calendar usage
+📌 Line 21 | 🔎 Confidence: ⭐⭐  
+Mixed usage of `Calendar.current` and `.gregorian` may cause inconsistencies.
 
-📌 Line 21 | 🔥 Severity: 🟧 Medium | 🔎 Confidence: ⭐⭐ (2/5)
-Using both `Calendar.current` and `Calendar(identifier: .gregorian)` may introduce inconsistencies.
-
-**💡 Suggestion:** Declare a single calendar instance and reuse it consistently.
+**💡 Suggestion:** Use a single calendar reference.
 
 ```swift
 let calendar = Calendar(identifier: .gregorian)
 ```
+
+### 🟨 Low Severity Issues
+#### 3. Function naming clarity
+📌 Line 33 | 🔎 Confidence: ⭐⭐⭐⭐  
+`getSevenDays()` is not aligned with Swift's naming guidelines.
+
+**💡 Suggestion:** Use a verb-based name like `generateSevenDays()`.
 
   ]]>
   </output-format>
