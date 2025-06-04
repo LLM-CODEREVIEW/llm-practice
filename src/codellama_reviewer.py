@@ -474,9 +474,9 @@ If no violations are found, return an empty array: []
             PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
-            print(output_text)
             violation_sentences=export_json_array(output_text)
-
+            logger.info(f"코딩컨벤션 도출 \nbefore: {output_text}\nafter:{violation_sentences}")
+            
             if not output_text:
                 logger.info("코딩 컨벤션 위반 사항이 없습니다.")
                 return "not applicable"
@@ -526,7 +526,7 @@ If no violations are found, return an empty array: []
 
         try:
             convention_guide = self._get_convention_guide(code)
-            logger.info(f"코딩컨벤션 도출 {convention_guide}")
+            logger.info(f"_get_convention_guide 결과 {convention_guide}")
             
             # xmlStyle.py의 템플릿 사용
             if not hasattr(template, 'replace'):
