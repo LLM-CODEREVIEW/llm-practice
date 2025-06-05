@@ -1,4 +1,3 @@
-
 template = """
 <review-task>
   <confidence-score-criteria>
@@ -19,7 +18,7 @@ template = """
 
   <severity-criteria>
     - 🟥 High: May cause runtime error, security breach, or data corruption  
-    - 🟧 Mediu: Potential performance degradation or poor maintainability  
+    - 🟧 Medium: Potential performance degradation or poor maintainability  
     - 🟨 Low: Styling issue, naming inconsistency, or non-critical suggestions  
   </severity-criteria>
 
@@ -30,22 +29,27 @@ template = """
 
     1. Read only the lines starting with '+' (ignore '-', ' ')
     2. For each code block, analyze and detect issues in the following order:
-       - Check for runtime errors or missing logging
-       - Consider performance bottlenecks
-       - Evaluate security risks
-       - Verify code convention/style compliance
-    3. For every detected issue, write a detailed comment with:
+       - Runtime Error or missing Logging
+       - Performance Optimization
+       - Security Issue
+       - Code Convention Violation
+    3. For each detected issue, write a detailed comment with:
        - Line number
        - Confidence score (⭐️~⭐⭐⭐⭐⭐)
        - Explanation of the issue
        - Suggested improvement
-    4. After identifying all issues, group them by **severity level** in the final output.
-       Use the following headers in order:
-         - `### 🟥 High Severity Issues`
-         - `### 🟧 Medium Severity Issues`
-         - `### 🟨 Low Severity Issues`
+       - Rule Type: One of Runtime, Logging, Optimization, Security, Convention
+    4. After identifying all issues, group them first by **severity level**, and within each severity group:
+       - Group by Rule Type in this order: Runtime → Logging → Optimization → Security → Convention
+       - Within each Rule Type group, number the issues starting from 1
 
-    Do not include severity labels in each comment. Severity will be reflected in grouping only.
+    Use the following headers in order:
+      - `### 🟥 High Severity Issues`
+      - `### 🟧 Medium Severity Issues`
+      - `### 🟨 Low Severity Issues`
+
+    Use a secondary heading (### [RuleType]) to separate rule types inside each severity section.
+    Use `#### [Number]. Summary` for each issue.
   </instruction>
 
   <convention-guide>
@@ -54,47 +58,43 @@ template = """
 
   <output-format>
   Do NOT reuse the text here. This is just a structural guide.
-  
+
     <![CDATA[
 ## ✅ PR Summary in 3 Lines
 - [Summary line 1]
 - [Summary line 2]
 - [Summary line 3]
 ## 🎯 Review Difficulty: ⭐⭐⭐ (3/5)
-## 🔑 Key Keyword: 네이밍, 상수, 포맷팅, 로그 등
+## 🔑 Key Keywords: naming, constant, formatting, logging
 
 ## 🔍 Detailed Review
 
 ### 🟥 High Severity Issues
+### [Runtime]
 #### 1. Null dereference risk
 📌 Line 52 | 🔎 Confidence: ⭐⭐⭐⭐  
-Exception handling is missing when accessing `data!`.
+Missing exception handling when accessing optional value. May cause a crash.
 
-**💡 Suggestion:** Add optional binding or guard statement.
+**💡 Suggestion:** Use `guard let` or conditional to safely unwrap.
 
-```swift
-guard let value = data else { return }
-```
+### [Convention]
+#### 1. Unclear function naming
+📌 Line 18 | 🔎 Confidence: ⭐⭐⭐⭐  
+The function name uses a noun form which is ambiguous about its behavior.
+
+**💡 Suggestion:** Use an action-based name like `generateSevenDays()` instead of `getSevenDays()`.
 
 ### 🟧 Medium Severity Issues
-#### 2. Inefficient calendar usage
-📌 Line 21 | 🔎 Confidence: ⭐⭐  
-Mixed usage of `Calendar.current` and `.gregorian` may cause inconsistencies.
+### [Optimization]
+#### 1. Redundant computation inside loop
+📌 Line 30 | 🔎 Confidence: ⭐⭐⭐  
+Repeatedly calling the same expression inside the loop can degrade performance.
 
-**💡 Suggestion:** Use a single calendar reference.
-
-```swift
-let calendar = Calendar(identifier: .gregorian)
-```
+**💡 Suggestion:** Move the expression outside the loop and reuse the value.
 
 ### 🟨 Low Severity Issues
-#### 3. Function naming clarity
-📌 Line 33 | 🔎 Confidence: ⭐⭐⭐⭐  
-`getSevenDays()` is not aligned with Swift's naming guidelines.
-
-**💡 Suggestion:** Use a verb-based name like `generateSevenDays()`.
-
-  ]]>
+... etc
+    ]]>
   </output-format>
 
   <diff>
