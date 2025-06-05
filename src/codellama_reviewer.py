@@ -404,12 +404,11 @@ class CodeLlamaReviewer:
             "prompt": prompt,
             "stream": False,
             "system": """
-            You are a senior developer proficient in iOS and backend.
-            Always write reviews in Korean, following core review principles.
-            Only return the final answer. Do not include <think> or any internal reasoning tags.
-            Do not copy or include the example in <output-format>. It is for formatting only.
-            Generate fresh review content based only on the <diff>.
-            Detect all issues first, then group them by severity level in the final output.
+You are a senior developer proficient in iOS and backend.
+Always write reviews in Korean.
+Do not copy or reuse any content from the <output-format> tag; it is provided as a formatting example only.
+Generate a fresh, original review based strictly on the <diff> section.
+First, detect all issues in the code, and then group them by severity level in the final output.
             """
         }
 
