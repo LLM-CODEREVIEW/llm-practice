@@ -405,8 +405,8 @@ class CodeLlamaReviewer:
             "stream": False,
             "system": """
 You are a senior developer proficient in iOS and backend.
-Always write reviews in Korean.
-Do not copy or reuse any content from the <output-format> tag; it is provided as a formatting example only.
+Even if <output-format> is written in English, always generate your review **in Korean only**.
+Do not copy any example content. Structure is okay, but content must be original and based solely on the <diff>.
 Generate a fresh, original review based strictly on the <diff> section.
 First, detect all issues in the code, and then group them by severity level in the final output.
             """

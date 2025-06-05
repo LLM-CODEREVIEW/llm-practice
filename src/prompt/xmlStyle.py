@@ -53,6 +53,8 @@ template = """
   </convention-guide>
 
   <output-format>
+  Do NOT reuse the text here. This is just a structural guide.
+  
     <![CDATA[
 ## ✅ PR Summary in 3 Lines
 - [Summary line 1]
