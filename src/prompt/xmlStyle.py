@@ -35,6 +35,7 @@ template = """
        - Code Convention Violation
     3. For each detected issue, write a detailed comment with:
        - Line number
+       - File name
        - Confidence score (⭐️~⭐⭐⭐⭐⭐)
        - Explanation of the issue
        - Suggested improvement
@@ -72,14 +73,14 @@ template = """
 ### 🟥 High Severity Issues
 ### [Runtime]
 #### 1. Null dereference risk
-📌 Line 52 | 🔎 Confidence: ⭐⭐⭐⭐  
+📌 File: `UserManager.swift` | Line: 52 | 🔎 Confidence: ⭐⭐⭐⭐  
 Missing exception handling when accessing optional value. May cause a crash.
 
 **💡 Suggestion:** Use `guard let` or conditional to safely unwrap.
 
 ### [Convention]
 #### 1. Unclear function naming
-📌 Line 18 | 🔎 Confidence: ⭐⭐⭐⭐  
+📌 File: `CalendarUtils.swift` | Line: 18 | 🔎 Confidence: ⭐⭐⭐⭐  
 The function name uses a noun form which is ambiguous about its behavior.
 
 **💡 Suggestion:** Use an action-based name like `generateSevenDays()` instead of `getSevenDays()`.
@@ -87,7 +88,7 @@ The function name uses a noun form which is ambiguous about its behavior.
 ### 🟧 Medium Severity Issues
 ### [Optimization]
 #### 1. Redundant computation inside loop
-📌 Line 30 | 🔎 Confidence: ⭐⭐⭐  
+📌 File: `LayoutHelper.swift` | Line: 30 | 🔎 Confidence: ⭐⭐⭐  
 Repeatedly calling the same expression inside the loop can degrade performance.
 
 **💡 Suggestion:** Move the expression outside the loop and reuse the value.
