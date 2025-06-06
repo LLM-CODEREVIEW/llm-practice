@@ -1,6 +1,30 @@
-
 template = """
 <review-task>
+  <instruction>
+    Follow the process below to perform a step-by-step code review:
+
+    1. Read only the lines starting with '+' (ignore lines starting with '-', or whitespace).
+    2. For each code block, detect issues in the following priority order:
+       - Runtime Errors or missing logging
+       - Performance optimizations
+       - Security issues
+       - Code convention violations
+
+    3. For each identified issue, document the following:
+       - File name and line number
+       - Confidence score (⭐️ to ⭐⭐⭐⭐⭐)
+       - Explanation of the issue
+       - Suggested improvement
+       - Rule Type: one of {Runtime, Logging, Optimization, Security, Convention}
+
+    4. After detecting all issues, organize them as follows:
+       - First group by severity level: 🟥 High → 🟧 Medium → 🟨 Low
+       - Within each severity level, group by rule type: Runtime → Logging → Optimization → Security → Convention
+       - Number the issues in each group (e.g., 1, 2, 3...)
+
+    ❗️Important: The <output-format> section is for structural guidance only. Never copy any of its content directly.
+  </instruction>
+
   <confidence-score-criteria>
     - ⭐️: Code is unclear or incomplete. Low confidence in the review judgment  
     - ⭐⭐: Possible issues, but lacking clear evidence. Suggestions are speculative  
@@ -19,24 +43,9 @@ template = """
 
   <severity-criteria>
     - 🟥 High: May cause runtime error, security breach, or data corruption  
-    - 🟧 Mediu: Potential performance degradation or poor maintainability  
+    - 🟧 Medium: Potential performance degradation or poor maintainability  
     - 🟨 Low: Styling issue, naming inconsistency, or non-critical suggestions  
   </severity-criteria>
-
-  <instruction>
-    Perform a step-by-step code review for the given PR Diff.
-
-    Follow these steps:
-    1. Read only the lines starting with '+' (ignore '-', ' ')
-    2. Understand what the code is trying to do
-    3. For each code block, think in the following order:
-       - Check for runtime errors or missing logging
-       - Consider performance optimization
-       - Evaluate security risks
-       - Verify code convention compliance
-       Only write comments when you detect an issue in each step.
-    4. Summarize your findings using the format in &lt;output-format&gt;.
-  </instruction>
 
   <convention-guide>
   {{CONVENTION_GUIDE_PLACEHOLDER}}
@@ -44,42 +53,41 @@ template = """
 
   <output-format>
     <![CDATA[
-### ✅ PR Summary in 3 Lines
-- [Summary line 1]
-- [Summary line 2]
-- [Summary line 3]
-### 🎯 Review Difficulty: ⭐⭐⭐ (3/5)
-### 🔑 Key Keyword: 네이밍, 상수, 포맷팅, 로그 등
-### 🔍 Detailed Review
+    # ✅ PR Summary in 3 Lines
+    - [Summary line 1]
+    - [Summary line 2]
+    - [Summary line 3]
 
-#### 1. **Function name uses discouraged 'get' prefix**  
-📌 Line 33 | 🔥 Severity: 🟧 Medium | 🔎 Confidence: ⭐⭐⭐⭐ (4/5)  
-The `getSevenDays()` function name violates Swift naming conventions.
+    # 🎯 Review Difficulty: ⭐⭐⭐ (1 to 5 stars)
+    # 🔑 Key Keywords: [e.g., optional unwrapping, loop optimization, naming, logging missing, etc.]
 
-**💡 Suggestion:** Rename the function to improve clarity and follow naming standards.
+    # 🔍 Detailed Review
 
-```swift
-func generateSevenDays() -> [ScheduleDate]
-```
+    ## 🟥 High Severity Issues
+    ### [Runtime]
+    #### 1. [Issue Title]
+    📌 File: `filename.swift` | Line: XX | 🔎 Confidence: ⭐⭐⭐⭐  
+    Explanation of the problem...
 
-#### 2. **Mixing Calendar.current and .gregorian**
+    💡 **Suggestion:** Suggested fix or improvement...
 
-📌 Line 21 | 🔥 Severity: 🟧 Medium | 🔎 Confidence: ⭐⭐ (2/5)
-Using both `Calendar.current` and `Calendar(identifier: .gregorian)` may introduce inconsistencies.
+    ## 🟧 Medium Severity Issues
+    ### [Optimization]
+    #### 1. [Issue Title]
+    📌 File: ...  
+    ...
 
-**💡 Suggestion:** Declare a single calendar instance and reuse it consistently.
-
-```swift
-let calendar = Calendar(identifier: .gregorian)
-```
-
-  ]]>
+    ## 🟨 Low Severity Issues
+    ### [Convention]
+    #### 1. [Issue Title]
+    ...
+    ]]>
   </output-format>
 
   <diff>
-   <![CDATA[
-   {{PR_DIFF_PLACEHOLDER}}
-   ]]> 
+    <![CDATA[
+    {{PR_DIFF_PLACEHOLDER}}
+    ]]>
   </diff>
 </review-task>
 """

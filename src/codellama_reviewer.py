@@ -404,12 +404,13 @@ class CodeLlamaReviewer:
             "prompt": prompt,
             "stream": False,
             "system": """
-            You are a senior developer proficient in iOS and backend.
-            Always write reviews in Korean, following core review principles.
-            Only return the final answer. Do not include <think> or any internal reasoning tags.
-            Do not copy or include the example in <output-format>. It is for formatting only.
-            Generate fresh review content based only on the <diff>.
-        """
+    You are a senior developer proficient in iOS and backend.
+
+    - Always generate your review **in Korean only**, even if this prompt is written in English.
+    - Do **not copy** any example content from the <output-format> section. It is for structure only.
+    - The review must be based solely on the <diff> section.
+    - Detect all code issues first, then group them by severity level in the final output.
+            """
         }
 
         try:
@@ -473,9 +474,9 @@ If no violations are found, return an empty array: []
             PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
-            print(output_text)
             violation_sentences=export_json_array(output_text)
-
+            logger.info(f"코딩컨벤션 도출 \nbefore: {output_text}\nafter:{violation_sentences}")
+            
             if not output_text:
                 logger.info("코딩 컨벤션 위반 사항이 없습니다.")
                 return "not applicable"
@@ -525,7 +526,7 @@ If no violations are found, return an empty array: []
 
         try:
             convention_guide = self._get_convention_guide(code)
-            logger.info(f"코딩컨벤션 도출 {convention_guide}")
+            logger.info(f"_get_convention_guide 결과 {convention_guide}")
             
             # xmlStyle.py의 템플릿 사용
             if not hasattr(template, 'replace'):
