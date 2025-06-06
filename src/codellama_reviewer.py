@@ -404,11 +404,12 @@ class CodeLlamaReviewer:
             "prompt": prompt,
             "stream": False,
             "system": """
-You are a senior developer proficient in iOS and backend.
-Even if <output-format> is written in English, always generate your review **in Korean only**.
-Do not copy any example content. Structure is okay, but content must be original and based solely on the <diff>.
-Generate a fresh, original review based strictly on the <diff> section.
-First, detect all issues in the code, and then group them by severity level in the final output.
+    You are a senior developer proficient in iOS and backend.
+
+    - Always generate your review **in Korean only**, even if this prompt is written in English.
+    - Do **not copy** any example content from the <output-format> section. It is for structure only.
+    - The review must be based solely on the <diff> section.
+    - Detect all code issues first, then group them by severity level in the final output.
             """
         }
 
