@@ -14,7 +14,6 @@ import psutil
 from prompt.xmlStyle import template
 from sentence_transformers import SentenceTransformer
 import chromadb
-from worker import export_json_array
 
 
 class CodeLlamaReviewer:
