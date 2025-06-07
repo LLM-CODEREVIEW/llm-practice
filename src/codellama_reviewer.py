@@ -644,3 +644,13 @@ If no violations are found, return an empty array: []
     def __del__(self):
         """소멸자에서 SSH 터널 정리"""
         self._cleanup_ssh_tunnel()
+
+    def export_json_array(text):
+        match = re.search(r"\[\s*\".*?\"\s*\]", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        return []
+
