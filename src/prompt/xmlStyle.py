@@ -23,6 +23,7 @@ template = """
        - First group by severity level: 🟥 High → 🟧 Medium → 🟨 Low
        - Within each severity level, group by rule type: Runtime → Logging → Optimization → Security → Convention
        - Number the issues in each group (e.g., 1, 2, 3...)
+       - Do not repeat same issues.
 
     ❗️Important: The <output-format> section is for structural guidance only. Never copy any of its content directly.
   </instruction>
