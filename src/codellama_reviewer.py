@@ -482,53 +482,31 @@ class CodeLlamaReviewer:
             if detected_language not in ["java", "swift"]:
                 return "not applicable"
 
-            # 2. VectorDB 컬렉션 로드
-            collection_name = f"{detected_language}_style_rules"
+            # 2. 해당 언어의 스타일 가이드 JSON 파일 로드
+            style_guide_path = f"src/style_guide/{detected_language}_style_rules.json"
             try:
-                collection = self.client.get_collection(collection_name)
+                with open(style_guide_path, 'r', encoding='utf-8') as f:
+                    style_guide = json.load(f)
             except Exception as e:
-                logger.warning(f"VectorDB 컬렉션 '{collection_name}' 로드 실패: {e}")
+                logger.warning(f"스타일 가이드 파일 로드 실패 ({style_guide_path}): {e}")
                 return "not applicable"
 
-            # 3. 코드 벡터화
-            code_vec = self.model.encode(code).tolist()
-
-            # 4. VectorDB 검색
-            results = collection.query(
-                query_embeddings=[code_vec],
-                n_results=5,
-                include=["documents", "metadatas", "distances"]
-            )
-            
-            logger.info(f"[Convention Guide] 검색 결과: {len(results['documents'][0]) if results['documents'] else 0}개 발견")
-            
-            # 5. 결과 상세 로깅
-            convention_guides = []
-            for doc, meta, distance in zip(
-                results["documents"][0],
-                results["metadatas"][0],
-                results["distances"][0]
-            ):
-                logger.info(
-                    f"[Convention Guide] 검색된 규칙 - "
-                    f"카테고리: {meta['category']}, "
-                    f"제목: {meta['title']}, "
-                    f"거리: {distance:.3f}",
-                    f"내용: {doc.strip()}"
+            # 3. 해당 언어의 모든 컨벤션 가이드 수집
+            guides = []
+            rules = style_guide[f"{detected_language}_style_guide_rules"]
+            for rule in rules:
+                guide = (
+                    f"- [{rule['category']} > {rule['subcategory']}] {rule['title']}\n"
+                    f"  {rule['rule']}\n"
                 )
-            
-                
-                if distance < 0.3:  # 유사도 임계값
-                    convention_guides.append(f"- [{meta['category']}] {doc.strip()}")
-                    logger.info(f"[Convention Guide] 규칙 추가됨 (거리: {distance})")
-                else:
-                    logger.info(f"[Convention Guide] 규칙 제외됨 (거리: {distance} > 0.3)")
+                guides.append(guide)
+                logger.info(f"[Convention Guide] 규칙 추가됨: {rule['title']}")
 
-            if not convention_guides:
+            if not guides:
                 logger.info("[Convention Guide] 적합한 컨벤션 가이드를 찾지 못했습니다.")
                 return "not applicable"
 
-            result = "\n".join(convention_guides)
+            result = "\n\n".join(guides)
             logger.info(f"[Convention Guide] 최종 결과:\n{result}")
             return result
 
