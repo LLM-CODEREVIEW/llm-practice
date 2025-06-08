@@ -453,73 +453,43 @@ class CodeLlamaReviewer:
     def _get_convention_guide(self, code: str) -> str:
         """코드에 대한 코딩 컨벤션 가이드를 검색합니다."""
         try:
-        # 1. 언어 감지 및 룰 로딩
+        # 1. 언어 감지
             detected_language = self._detect_language(code)
-            if detected_language not in ["java", "swift"]:
-                logger.warning(f"지원되지 않는 언어: {detected_language}")
-                return "not applicable"
-
-            json_path = f"{detected_language}_style_rules.json"
-            with open(json_path, encoding="utf-8") as f:
-                style_rules = json.load(f)[f"{detected_language}_style_guide_rules"]
-
             collection_name = f"{detected_language}_style_rules"
+        
             try:
                 collection = self.client.get_collection(collection_name)
             except Exception as e:
                 logger.warning(f"VectorDB 컬렉션 '{collection_name}' 로드 실패: {e}")
                 return "not applicable"
 
-            results = []
+        # 2. 코드 Diff를 벡터로 변환
+            code_vec = self.model.encode(code).tolist()
         
-            for rule in style_rules:
-                rule_text = rule["rule"]
-
-            # 2. LLM에게 위반 여부 판단 요청
-                prompt = f"""
-You are a code style reviewer.
-Please check if the following code diff violates this coding convention rule.
-
-📘 Rule:
-\"\"\"
-{rule_text}
-\"\"\"
-
-🧾 Code Diff:
-\"\"\"
-{code}
-\"\"\"
-
-If the rule is clearly violated, return only: YES  
-If not violated or ambiguous, return only: NO
-"""
-
-                try:
-                    llm_response = self._call_ollama_api(prompt).strip().upper()
-                    if llm_response == "YES":
-                    # 3. VectorDB에서 해당 룰 설명 보강
-                        query = f"{rule['title']} - {rule_text}"
-                        vec = self.model.encode(query).tolist()
-                        vdb_results = collection.query(query_embeddings=[vec], n_results=1)
-
-                        explanation = ""
-                        if vdb_results["documents"] and vdb_results["metadatas"]:
-                            doc = vdb_results["documents"][0][0]
-                            meta = vdb_results["metadatas"][0][0]
-                            explanation = f"- [{meta['category']}] {doc.strip()}"
-                        else:
-                            explanation = f"- [{rule['category']}] {rule['title']}: {rule_text}"
-
-                        results.append(explanation)
-                except Exception as e:
-                    logger.error(f"LLM 판단 중 오류 발생 (rule ID: {rule.get('id')}): {e}")
-                    continue
-            return "\n".join(results) if results else "not applicable"
+        # 3. VectorDB에서 유사한 컨벤션 규칙 검색
+            results = collection.query(
+                query_embeddings=[code_vec],
+                n_results=5,  # 상위 5개 규칙 검색
+                include=["documents", "metadatas", "distances"]
+            )
+        
+        # 4. 결과 필터링 및 포맷팅
+            convention_guides = []
+            for doc, meta, distance in zip(
+                results["documents"][0],
+                results["metadatas"][0],
+                results["distances"][0]
+            ):
+            # 유사도가 0.7 이상인 경우만 포함
+                if distance < 0.3:  # cosine distance는 0에 가까울수록 유사
+                    convention_guides.append(f"- [{meta['category']}] {doc.strip()}")
+        
+            return "\n".join(convention_guides) if convention_guides else "not applicable"
 
         except Exception as e:
             logger.error(f"컨벤션 가이드 생성 실패: {e}")
             return "not applicable"
-
+    
     def _export_json_array(self, text: str) -> list:
         """텍스트에서 JSON 배열을 추출합니다."""
         match = re.search(r"\[\s*\".*?\"\s*\]", text, re.DOTALL)
