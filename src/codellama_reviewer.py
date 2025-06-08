@@ -453,69 +453,71 @@ class CodeLlamaReviewer:
     def _get_convention_guide(self, code: str) -> str:
         """코드에 대한 코딩 컨벤션 가이드를 검색합니다."""
         try:
-            # 코딩컨벤션 키워드 도출
-            convention_prompt = f"""
-Your task is to detect coding convention violations in the provided xPR Diff.
-🛑 Output format requirement:
-- Return **only** a valid JSON array
-- **Do not include** any extra explanation, comments, markdown, or tags like <think>
-- Each array item must be **one short English sentence**
-- Each sentence should **begin with a line number**, e.g., "Line 12: ..."
-
-✅ Example output:
-[
-  "Line 10: Variable name 'X' does not follow camelCase convention.",
-  "Line 24: Avoid force-unwrapping optional value."
-]
-
-If no violations are found, return an empty array: []
-
----
-            PR Diff: {code}
-            """
-            output_text = self._call_ollama_api(convention_prompt)
-            violation_sentences = self._export_json_array(output_text)
-            logger.info(f"코딩컨벤션 도출 \nbefore: {output_text}\nafter:{violation_sentences}")
-            
-            if not output_text:
-                logger.info("코딩 컨벤션 위반 사항이 없습니다.")
-                return "not applicable"
-
-            # VectorDB에서 관련 컨벤션 가이드 찾기
+        # 1. 언어 감지 및 룰 로딩
             detected_language = self._detect_language(code)
-            collection_name = f"{detected_language}_style_rules"
-            
-            try:
-                # 디버깅: 사용 가능한 컬렉션 목록 확인
-                collections = self.client.list_collections()
-                logger.info(f"사용 가능한 컬렉션 목록: {collections}")
-                
-                collection = self.client.get_collection(collection_name)
-                logger.info(f"컬렉션 '{collection_name}' 성공적으로 로드됨")
-            except Exception as e:
-                logger.error(f"컬렉션 '{collection_name}'을 찾을 수 없습니다: {str(e)}")
+            if detected_language not in ["java", "swift"]:
+                logger.warning(f"지원되지 않는 언어: {detected_language}")
                 return "not applicable"
 
-            # 관련 컨벤션 가이드 수집
-            convention_guide = ""
-            for sentence in violation_sentences:
-                try:
-                    vec = self.model.encode(sentence).tolist()
-                    results = collection.query(query_embeddings=[vec], n_results=1)
-                    
-                    if not results["documents"] or not results["metadatas"]:
-                        continue
-                        
-                    for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
-                        convention_guide += f"- [{meta['category']}] {doc.strip()}\n"
-                except Exception as e:
-                    logger.error(f"문장 '{sentence}' 처리 중 오류 발생: {str(e)}")
-                    continue
+            json_path = f"{detected_language}_style_rules.json"
+            with open(json_path, encoding="utf-8") as f:
+                style_rules = json.load(f)[f"{detected_language}_style_guide_rules"]
 
-            return convention_guide.strip() if convention_guide else "not applicable"
+            collection_name = f"{detected_language}_style_rules"
+            try:
+                collection = self.client.get_collection(collection_name)
+            except Exception as e:
+                logger.warning(f"VectorDB 컬렉션 '{collection_name}' 로드 실패: {e}")
+                return "not applicable"
+
+            results = []
+        
+            for rule in style_rules:
+                rule_text = rule["rule"]
+
+            # 2. LLM에게 위반 여부 판단 요청
+                prompt = f"""
+You are a code style reviewer.
+Please check if the following code diff violates this coding convention rule.
+
+📘 Rule:
+\"\"\"
+{rule_text}
+\"\"\"
+
+🧾 Code Diff:
+\"\"\"
+{code}
+\"\"\"
+
+If the rule is clearly violated, return only: YES  
+If not violated or ambiguous, return only: NO
+"""
+
+                try:
+                    llm_response = self._call_ollama_api(prompt).strip().upper()
+                    if llm_response == "YES":
+                    # 3. VectorDB에서 해당 룰 설명 보강
+                        query = f"{rule['title']} - {rule_text}"
+                        vec = self.model.encode(query).tolist()
+                        vdb_results = collection.query(query_embeddings=[vec], n_results=1)
+
+                        explanation = ""
+                        if vdb_results["documents"] and vdb_results["metadatas"]:
+                            doc = vdb_results["documents"][0][0]
+                            meta = vdb_results["metadatas"][0][0]
+                            explanation = f"- [{meta['category']}] {doc.strip()}"
+                        else:
+                            explanation = f"- [{rule['category']}] {rule['title']}: {rule_text}"
+
+                        results.append(explanation)
+                except Exception as e:
+                    logger.error(f"LLM 판단 중 오류 발생 (rule ID: {rule.get('id')}): {e}")
+                    continue
+            return "\n".join(results) if results else "not applicable"
 
         except Exception as e:
-            logger.error(f"코딩 컨벤션 가이드 생성 중 오류 발생: {str(e)}")
+            logger.error(f"컨벤션 가이드 생성 실패: {e}")
             return "not applicable"
 
     def _export_json_array(self, text: str) -> list:
