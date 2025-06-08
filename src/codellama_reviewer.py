@@ -385,11 +385,32 @@ class CodeLlamaReviewer:
 
     def _detect_language(self, code: str) -> str:
         """코드에서 언어를 감지합니다."""
-        if ".java" in code:
-            return "java"
-        elif ".swift" in code:
-            return "swift"
-        return ""
+        try:
+            # 1. 코드가 비어있는지 확인
+            if not code or not code.strip():
+                logger.warning("[Language Detection] 입력 코드가 비어있습니다.")
+                return ""
+            
+            # 2. 파일 경로 추출 시도
+            file_paths = re.findall(r'=== File: (.*?) ===', code)
+            if not file_paths:
+                logger.warning("[Language Detection] 파일 경로를 찾을 수 없습니다.")
+                return ""
+            
+            # 3. 각 파일의 확장자 확인
+            for file_path in file_paths:
+                if file_path.endswith('.java'):
+                    logger.info("[Language Detection] Java 파일 감지됨")
+                    return "java"
+                elif file_path.endswith('.swift'):
+                    logger.info("[Language Detection] Swift 파일 감지됨")
+                    return "swift"
+                
+            return ""
+        
+        except Exception as e:
+            logger.error(f"[Language Detection] 언어 감지 중 오류 발생: {e}")
+            return ""
 
     # FIXME: LLM 모델 바꿔보기
     def _call_ollama_api(self, prompt: str, model: str = "qwen2.5-coder:32b-instruct") -> str:
@@ -458,7 +479,6 @@ class CodeLlamaReviewer:
             logger.info(f"[Convention Guide] 감지된 언어: {detected_language}")
             
             if detected_language not in ["java", "swift"]:
-                logger.warning(f"[Convention Guide] 지원되지 않는 언어: {detected_language}")
                 return "not applicable"
 
             # 2. VectorDB 컬렉션 로드
