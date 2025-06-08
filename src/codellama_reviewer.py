@@ -16,6 +16,7 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 
 
+
 class CodeLlamaReviewer:
     def __init__(self, api_url: str, chroma_db_path: str = "./chroma_db"):
         logger.info("=== CodeLlamaReviewer 초기화 시작 ===")
@@ -28,7 +29,7 @@ class CodeLlamaReviewer:
         self.max_workers = 3
         
         # CodingConventionVerifier 관련 초기화
-        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        self.model = SentenceTransformer("microsoft/codebert-base")
         
         # ChromaDB 초기화
         logger.info("=== ChromaDB 초기화 시작 ===")
@@ -384,11 +385,32 @@ class CodeLlamaReviewer:
 
     def _detect_language(self, code: str) -> str:
         """코드에서 언어를 감지합니다."""
-        if ".java" in code:
-            return "java"
-        elif ".swift" in code:
-            return "swift"
-        return "java"  # 기본값
+        try:
+            # 1. 코드가 비어있는지 확인
+            if not code or not code.strip():
+                logger.warning("[Language Detection] 입력 코드가 비어있습니다.")
+                return ""
+            
+            # 2. 파일 경로 추출 시도
+            file_paths = re.findall(r'=== File: (.*?) ===', code)
+            if not file_paths:
+                logger.warning("[Language Detection] 파일 경로를 찾을 수 없습니다.")
+                return ""
+            
+            # 3. 각 파일의 확장자 확인
+            for file_path in file_paths:
+                if file_path.endswith('.java'):
+                    logger.info("[Language Detection] Java 파일 감지됨")
+                    return "java"
+                elif file_path.endswith('.swift'):
+                    logger.info("[Language Detection] Swift 파일 감지됨")
+                    return "swift"
+                
+            return ""
+        
+        except Exception as e:
+            logger.error(f"[Language Detection] 언어 감지 중 오류 발생: {e}")
+            return ""
 
     # FIXME: LLM 모델 바꿔보기
     def _call_ollama_api(self, prompt: str, model: str = "qwen2.5-coder:32b-instruct") -> str:
@@ -451,73 +473,68 @@ class CodeLlamaReviewer:
             raise
 
     def _get_convention_guide(self, code: str) -> str:
-        """코드에 대한 코딩 컨벤션 가이드를 검색합니다."""
         try:
-            # 코딩컨벤션 키워드 도출
-            convention_prompt = f"""
-Your task is to detect coding convention violations in the provided xPR Diff.
-🛑 Output format requirement:
-- Return **only** a valid JSON array
-- **Do not include** any extra explanation, comments, markdown, or tags like <think>
-- Each array item must be **one short English sentence**
-- Each sentence should **begin with a line number**, e.g., "Line 12: ..."
-
-✅ Example output:
-[
-  "Line 10: Variable name 'X' does not follow camelCase convention.",
-  "Line 24: Avoid force-unwrapping optional value."
-]
-
-If no violations are found, return an empty array: []
-
----
-            PR Diff: {code}
-            """
-            output_text = self._call_ollama_api(convention_prompt)
-            violation_sentences = self._export_json_array(output_text)
-            logger.info(f"코딩컨벤션 도출 \nbefore: {output_text}\nafter:{violation_sentences}")
-            
-            if not output_text:
-                logger.info("코딩 컨벤션 위반 사항이 없습니다.")
-                return "not applicable"
-
-            # VectorDB에서 관련 컨벤션 가이드 찾기
+            # 1. 언어 감지
             detected_language = self._detect_language(code)
-            collection_name = f"{detected_language}_style_rules"
+            logger.info(f"[Convention Guide] 감지된 언어: {detected_language}")
             
-            try:
-                # 디버깅: 사용 가능한 컬렉션 목록 확인
-                collections = self.client.list_collections()
-                logger.info(f"사용 가능한 컬렉션 목록: {collections}")
-                
-                collection = self.client.get_collection(collection_name)
-                logger.info(f"컬렉션 '{collection_name}' 성공적으로 로드됨")
-            except Exception as e:
-                logger.error(f"컬렉션 '{collection_name}'을 찾을 수 없습니다: {str(e)}")
+            if detected_language not in ["java", "swift"]:
                 return "not applicable"
 
-            # 관련 컨벤션 가이드 수집
-            convention_guide = ""
-            for sentence in violation_sentences:
-                try:
-                    vec = self.model.encode(sentence).tolist()
-                    results = collection.query(query_embeddings=[vec], n_results=1)
-                    
-                    if not results["documents"] or not results["metadatas"]:
-                        continue
-                        
-                    for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
-                        convention_guide += f"- [{meta['category']}] {doc.strip()}\n"
-                except Exception as e:
-                    logger.error(f"문장 '{sentence}' 처리 중 오류 발생: {str(e)}")
-                    continue
+            # 2. VectorDB 컬렉션 로드
+            collection_name = f"{detected_language}_style_rules"
+            try:
+                collection = self.client.get_collection(collection_name)
+            except Exception as e:
+                logger.warning(f"VectorDB 컬렉션 '{collection_name}' 로드 실패: {e}")
+                return "not applicable"
 
-            return convention_guide.strip() if convention_guide else "not applicable"
+            # 3. 코드 벡터화
+            code_vec = self.model.encode(code).tolist()
+
+            # 4. VectorDB 검색
+            results = collection.query(
+                query_embeddings=[code_vec],
+                n_results=5,
+                include=["documents", "metadatas", "distances"]
+            )
+            
+            logger.info(f"[Convention Guide] 검색 결과: {len(results['documents'][0]) if results['documents'] else 0}개 발견")
+            
+            # 5. 결과 상세 로깅
+            convention_guides = []
+            for doc, meta, distance in zip(
+                results["documents"][0],
+                results["metadatas"][0],
+                results["distances"][0]
+            ):
+                logger.info(
+                    f"[Convention Guide] 검색된 규칙 - "
+                    f"카테고리: {meta['category']}, "
+                    f"제목: {meta['title']}, "
+                    f"거리: {distance:.3f}",
+                    f"내용: {doc.strip()}"
+                )
+            
+                
+                if distance < 0.3:  # 유사도 임계값
+                    convention_guides.append(f"- [{meta['category']}] {doc.strip()}")
+                    logger.info(f"[Convention Guide] 규칙 추가됨 (거리: {distance})")
+                else:
+                    logger.info(f"[Convention Guide] 규칙 제외됨 (거리: {distance} > 0.3)")
+
+            if not convention_guides:
+                logger.info("[Convention Guide] 적합한 컨벤션 가이드를 찾지 못했습니다.")
+                return "not applicable"
+
+            result = "\n".join(convention_guides)
+            logger.info(f"[Convention Guide] 최종 결과:\n{result}")
+            return result
 
         except Exception as e:
-            logger.error(f"코딩 컨벤션 가이드 생성 중 오류 발생: {str(e)}")
+            logger.error(f"[Convention Guide] 컨벤션 가이드 생성 실패: {e}")
             return "not applicable"
-
+    
     def _export_json_array(self, text: str) -> list:
         """텍스트에서 JSON 배열을 추출합니다."""
         match = re.search(r"\[\s*\".*?\"\s*\]", text, re.DOTALL)

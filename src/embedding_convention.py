@@ -14,7 +14,7 @@ with open("src/style_guide/swift_style_rules.json", encoding="utf-8") as f:
 swift_rules = swift_data["swift_style_guide_rules"]
 
 # Load model
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+model = SentenceTransformer("microsoft/codebert-base")
 
 # Setup ChromaDB
 try:
