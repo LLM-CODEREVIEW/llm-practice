@@ -28,7 +28,7 @@ class CodeLlamaReviewer:
         self.max_workers = 3
         
         # CodingConventionVerifier 관련 초기화
-        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        self.model = SentenceTransformer("microsoft/codebert-base")
         
         # ChromaDB 초기화
         logger.info("=== ChromaDB 초기화 시작 ===")
