@@ -16,6 +16,7 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 
 
+
 class CodeLlamaReviewer:
     def __init__(self, api_url: str, chroma_db_path: str = "./chroma_db"):
         logger.info("=== CodeLlamaReviewer 초기화 시작 ===")
@@ -451,43 +452,64 @@ class CodeLlamaReviewer:
             raise
 
     def _get_convention_guide(self, code: str) -> str:
-        """코드에 대한 코딩 컨벤션 가이드를 검색합니다."""
         try:
-        # 1. 언어 감지
+            # 1. 언어 감지
             detected_language = self._detect_language(code)
+            logger.info(f"[Convention Guide] 감지된 언어: {detected_language}")
+            
+            if detected_language not in ["java", "swift"]:
+                logger.warning(f"[Convention Guide] 지원되지 않는 언어: {detected_language}")
+                return "not applicable"
+
+            # 2. VectorDB 컬렉션 로드
             collection_name = f"{detected_language}_style_rules"
-        
             try:
                 collection = self.client.get_collection(collection_name)
             except Exception as e:
                 logger.warning(f"VectorDB 컬렉션 '{collection_name}' 로드 실패: {e}")
                 return "not applicable"
 
-        # 2. 코드 Diff를 벡터로 변환
+            # 3. 코드 벡터화
             code_vec = self.model.encode(code).tolist()
-        
-        # 3. VectorDB에서 유사한 컨벤션 규칙 검색
+
+            # 4. VectorDB 검색
             results = collection.query(
                 query_embeddings=[code_vec],
-                n_results=5,  # 상위 5개 규칙 검색
+                n_results=5,
                 include=["documents", "metadatas", "distances"]
             )
-        
-        # 4. 결과 필터링 및 포맷팅
+            
+            logger.info(f"[Convention Guide] 검색 결과: {len(results['documents'][0]) if results['documents'] else 0}개 발견")
+            
+            # 5. 결과 상세 로깅
             convention_guides = []
             for doc, meta, distance in zip(
                 results["documents"][0],
                 results["metadatas"][0],
                 results["distances"][0]
             ):
-            # 유사도가 0.7 이상인 경우만 포함
-                if distance < 0.3:  # cosine distance는 0에 가까울수록 유사
+                logger.info(f"[Convention Guide] 검색된 규칙:")
+                logger.info(f"  - 카테고리: {meta['category']}")
+                logger.info(f"  - 제목: {meta['title']}")
+                logger.info(f"  - 유사도 거리: {distance}")
+                logger.info(f"  - 내용: {doc.strip()}")
+                
+                if distance < 0.3:  # 유사도 임계값
                     convention_guides.append(f"- [{meta['category']}] {doc.strip()}")
-        
-            return "\n".join(convention_guides) if convention_guides else "not applicable"
+                    logger.info(f"[Convention Guide] 규칙 추가됨 (거리: {distance})")
+                else:
+                    logger.info(f"[Convention Guide] 규칙 제외됨 (거리: {distance} > 0.3)")
+
+            if not convention_guides:
+                logger.info("[Convention Guide] 적합한 컨벤션 가이드를 찾지 못했습니다.")
+                return "not applicable"
+
+            result = "\n".join(convention_guides)
+            logger.info(f"[Convention Guide] 최종 결과:\n{result}")
+            return result
 
         except Exception as e:
-            logger.error(f"컨벤션 가이드 생성 실패: {e}")
+            logger.error(f"[Convention Guide] 컨벤션 가이드 생성 실패: {e}")
             return "not applicable"
     
     def _export_json_array(self, text: str) -> list:
