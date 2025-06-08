@@ -418,6 +418,7 @@ class CodeLlamaReviewer:
         logger.info(f"=== Ollama API 호출 시작 ===")
         logger.info(f"API URL: {self.api_url}/api/generate")
         logger.info(f"요청 모델: {model}")
+        logger.info(f"요청 프롬프트: {prompt}")
         logger.info(f"프롬프트 길이: {len(prompt)} characters")
         
         request_data = {
