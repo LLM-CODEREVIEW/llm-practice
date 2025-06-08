@@ -389,7 +389,7 @@ class CodeLlamaReviewer:
             return "java"
         elif ".swift" in code:
             return "swift"
-        return "java"  # 기본값
+        return ""
 
     # FIXME: LLM 모델 바꿔보기
     def _call_ollama_api(self, prompt: str, model: str = "qwen2.5-coder:32b-instruct") -> str:
@@ -488,11 +488,14 @@ class CodeLlamaReviewer:
                 results["metadatas"][0],
                 results["distances"][0]
             ):
-                logger.info(f"[Convention Guide] 검색된 규칙:")
-                logger.info(f"  - 카테고리: {meta['category']}")
-                logger.info(f"  - 제목: {meta['title']}")
-                logger.info(f"  - 유사도 거리: {distance}")
-                logger.info(f"  - 내용: {doc.strip()}")
+                logger.info(
+                    f"[Convention Guide] 검색된 규칙 - "
+                    f"카테고리: {meta['category']}, "
+                    f"제목: {meta['title']}, "
+                    f"유사도: {similarity:.3f}, "
+                    f"내용: {doc.strip()}"
+                )
+            
                 
                 if distance < 0.3:  # 유사도 임계값
                     convention_guides.append(f"- [{meta['category']}] {doc.strip()}")
