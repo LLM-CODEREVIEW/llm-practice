@@ -9,7 +9,7 @@ template = """
        - Runtime Error Check: Inspect code for potential runtime errors and identify other latent risks + recommend logging implementation points
        - Optimization: Examine optimization opportunities in code patches, recommend optimized code when performance degradation is detected
        - Security Issue: Check whether code uses modules with serious security flaws or contains security vulnerabilities
-       - Code Convention Compliance: Verify adherence to team-defined coding conventions (e.g., function/variable naming rules, comment styles, file/class organization order, etc.)
+       - Code Convention Compliance: Validate coding convention compliance based on the <convention-guide> rules during the review.
 
     3. For each identified issue, document the following:
        - File name, method/function name, and line number
@@ -23,7 +23,6 @@ template = """
        - First group by severity level: 🟥 High → 🟧 Medium → 🟨 Low
        - Within each severity level, group by rule type: Runtime → Logging → Optimization → Security → Convention
        - Number the issues in each group (e.g., 1, 2, 3...)
-       - Do not repeat same issues.
 
     ❗️Important: The <output-format> section is for structural guidance only. Never copy any of its content directly.
   </instruction>
