@@ -3,18 +3,20 @@ template = """
   <instruction>
     Follow the process below to perform a step-by-step code review:
 
-    1. Read only the lines starting with '+' (ignore lines starting with '-', or whitespace).
+	1. Review only the lines starting with '+' (added/modified code), but use the entire file context to understand
+	   - Lines starting with '-' or unchanged lines serve as context only - do not review them unless they directly affect the '+' lines.
     2. For each code block, detect issues in the following priority order:
-       - Runtime Errors or missing logging
-       - Performance optimizations
-       - Security issues
-       - Code convention violations
+       - Runtime Error Check: Inspect code for potential runtime errors and identify other latent risks + recommend logging implementation points
+       - Optimization: Examine optimization opportunities in code patches, recommend optimized code when performance degradation is detected
+       - Security Issue: Check whether code uses modules with serious security flaws or contains security vulnerabilities
+       - Code Convention Compliance: Verify adherence to team-defined coding conventions (e.g., function/variable naming rules, comment styles, file/class organization order, etc.)
 
     3. For each identified issue, document the following:
-       - File name and line number
+       - File name, method/function name, and line number
+       - Code snippet of the problematic lines
        - Confidence score (⭐️ to ⭐⭐⭐⭐⭐)
        - Explanation of the issue
-       - Suggested improvement
+       - Suggested improvement with code example
        - Rule Type: one of {Runtime, Logging, Optimization, Security, Convention}
 
     4. After detecting all issues, organize them as follows:
