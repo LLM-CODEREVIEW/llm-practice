@@ -1,3 +1,7 @@
 # .gitignore에 포함되어 있을 내용 예시
 __pycache__/
 *.pyc
+
+# macOS system files
+.DS_Store
+**/.DS_Store

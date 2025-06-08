@@ -492,7 +492,7 @@ class CodeLlamaReviewer:
                     f"[Convention Guide] 검색된 규칙 - "
                     f"카테고리: {meta['category']}, "
                     f"제목: {meta['title']}, "
-                    f"유사도: {similarity:.3f}, "
+                    f"거리: {distance:.3f}",
                     f"내용: {doc.strip()}"
                 )
             
