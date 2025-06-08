@@ -473,7 +473,7 @@ If no violations are found, return an empty array: []
             PR Diff: {code}
             """
             output_text = self._call_ollama_api(convention_prompt)
-            violation_sentences=export_json_array(output_text)
+            violation_sentences = self._export_json_array(output_text)
             logger.info(f"코딩컨벤션 도출 \nbefore: {output_text}\nafter:{violation_sentences}")
             
             if not output_text:
@@ -511,11 +511,21 @@ If no violations are found, return an empty array: []
                     logger.error(f"문장 '{sentence}' 처리 중 오류 발생: {str(e)}")
                     continue
 
-                return convention_guide.strip() if convention_guide else "not applicable"
+            return convention_guide.strip() if convention_guide else "not applicable"
 
         except Exception as e:
             logger.error(f"코딩 컨벤션 가이드 생성 중 오류 발생: {str(e)}")
             return "not applicable"
+
+    def _export_json_array(self, text: str) -> list:
+        """텍스트에서 JSON 배열을 추출합니다."""
+        match = re.search(r"\[\s*\".*?\"\s*\]", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        return []
 
     def _create_prompt(self, code: str) -> str:
         """코드 리뷰를 위한 프롬프트를 생성합니다."""
@@ -643,13 +653,4 @@ If no violations are found, return an empty array: []
     def __del__(self):
         """소멸자에서 SSH 터널 정리"""
         self._cleanup_ssh_tunnel()
-
-    def export_json_array(text):
-        match = re.search(r"\[\s*\".*?\"\s*\]", text, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group(0))
-            except json.JSONDecodeError:
-                pass
-        return []
 
