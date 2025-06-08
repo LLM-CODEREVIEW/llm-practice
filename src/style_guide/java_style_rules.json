@@ -1,193 +1,356 @@
 {
   "java_style_guide_rules": [
     {
-      "id": "junit5_library",
-      "category": "라이브러리",
-      "subcategory": "사용 라이브러리",
-      "title": "JUnit5 사용",
-      "rule": "테스트에는 JUnit5를 사용합니다.",
+      "id": "constant_naming",
+      "category": "네이밍",
+      "subcategory": "변수명",
+      "title": "상수 네이밍 규칙",
+      "rule": "상수는 대문자로 작성하고 단어 사이는 언더바(_)를 사용합니다.",
       "examples": {
-        "good": "spring-boot-starter-test 의존성에 포함되어 있어 별도 추가 불필요",
-        "bad": "JUnit4 또는 다른 테스트 프레임워크 사용"
+        "good": "private static final int MESSAGE_COUNT = 10;",
+        "bad": "private static final int messageCount = 10;"
       }
     },
     {
-      "id": "mockito_library",
-      "category": "라이브러리",
-      "subcategory": "사용 라이브러리",
-      "title": "Mockito 사용",
-      "rule": "Mock 객체 생성에는 Mockito를 사용합니다.",
+      "id": "local_variable_naming",
+      "category": "네이밍",
+      "subcategory": "변수명",
+      "title": "지역변수 네이밍 규칙",
+      "rule": "지역변수는 카멜케이스를 적용하고, 타입을 붙이지 않으며, 의미있는 이름을 부여합니다.",
       "examples": {
-        "good": "spring-boot-starter-test 의존성에 포함되어 있어 별도 추가 불필요",
-        "bad": "다른 Mock 라이브러리 사용"
+        "good": "List<Country> countries = new ArrayList<>();\nint index = 0;",
+        "bad": "List<Country> countryList = new ArrayList<>();\nint i = 0;"
       }
     },
     {
-      "id": "assertj_library",
-      "category": "라이브러리",
-      "subcategory": "사용 라이브러리",
-      "title": "AssertJ 사용",
-      "rule": "Assert 검증에는 AssertJ를 사용합니다.",
+      "id": "date_variable_naming",
+      "category": "네이밍",
+      "subcategory": "변수명",
+      "title": "날짜 변수 네이밍 규칙",
+      "rule": "날짜 변수는 타입에 따라 변수명을 구분합니다. LocalDateTime → xxxDateTime, LocalDate → xxxDate",
       "examples": {
-        "good": "spring-boot-starter-test 의존성에 포함되어 있어 별도 추가 불필요",
-        "bad": "다른 Assert 라이브러리 사용"
+        "good": "LocalDateTime paymentDateTime;\nLocalDate approvalDate;",
+        "bad": "LocalDateTime paymentDt;\nLocalDate approvalDt;"
       }
     },
     {
-      "id": "test_class_naming",
+      "id": "class_naming",
       "category": "네이밍",
       "subcategory": "클래스",
-      "title": "테스트 클래스 네이밍",
-      "rule": "테스트하고자 하는 클래스의 이름과 접미사(suffix)로 Test를 붙입니다.",
+      "title": "클래스 네이밍 규칙",
+      "rule": "클래스명은 대문자로 시작하는 카멜케이스를 적용하고 명사, 명사구를 사용합니다.",
       "examples": {
-        "good": "public class EscrowServiceTest {\n  /** code **/\n}",
-        "bad": "public class EscrowServiceTests {\n  /** code **/\n}"
+        "good": "public class PaymentCertification {}",
+        "bad": "public class paymentCertify {}"
       }
     },
     {
-      "id": "inner_class_structure",
+      "id": "dto_naming",
       "category": "네이밍",
-      "subcategory": "Inner Class",
-      "title": "Inner Class 구조",
-      "rule": "테스트할 메소드명 > Success > Fail로 구성하며, @Nested를 사용하여 계층구조로 출력되도록 합니다.",
+      "subcategory": "클래스",
+      "title": "DTO 클래스 네이밍 규칙",
+      "rule": "DTO 클래스는 {클래스명}Dto{버전} 형태로 명명합니다. (버전은 옵셔널)",
       "examples": {
-        "good": "public class EscrowServiceTest {\n  @Nested\n  class UpdateEscrowDeliveryStart {\n    @Nested\n    class Success {\n      /** success test code **/\n    }\n    @Nested\n    class Fail {\n      /** fail test code **/\n    }\n  }\n}",
-        "bad": "public class EscrowServiceTest {\n  // 평면적인 테스트 메소드들\n}"
+        "good": "public class PaymentInfoDto {}\npublic class PaymentInfoDtoV1 {}",
+        "bad": "public class PaymentInfo {}"
       }
     },
     {
-      "id": "method_name_nested",
+      "id": "entity_naming",
       "category": "네이밍",
-      "subcategory": "메소드명",
-      "title": "메소드명 @Nested 사용",
-      "rule": "반드시 테스트할 메소드명을 @Nested를 사용하여 기재합니다. 다른 팀원이 해당 메소드에 관한 테스트 코드가 있는지 확인을 쉽게 하기 위함입니다.",
+      "subcategory": "클래스",
+      "title": "Entity 클래스 네이밍 규칙",
+      "rule": "Entity 클래스는 {클래스명}Entity 형태로 명명합니다.",
       "examples": {
-        "good": "@Nested\nclass UpdateEscrowDeliveryStart {\n  /** test code **/\n}",
-        "bad": "// 메소드명 없이 바로 테스트 케이스 작성"
+        "good": "public class PaymentInfoEntity {}",
+        "bad": "public class PaymentInfo {}"
       }
     },
     {
-      "id": "actual_variable_naming",
+      "id": "service_naming",
       "category": "네이밍",
-      "subcategory": "변수",
-      "title": "실제 결과값 변수 네이밍",
-      "rule": "실제 결과값에는 actual을 접미사(prefix)로 사용합니다.",
+      "subcategory": "클래스",
+      "title": "Service/Repository 네이밍 규칙",
+      "rule": "인터페이스는 {인터페이스명}Service/Repository, 구현체는 {클래스명}ServiceImpl/RepositoryImpl로 명명합니다.",
       "examples": {
-        "good": "@DisplayName(\"Success\")\n@Test\nvoid successTest() throws Exception {\n  /** Given **/\n  boolean expected = false;\n  /** When **/\n  boolean actual = escrowValidator.isExistDeliveryInfo(deliveryDto);\n  /** Then **/\n  assertThat(actual).isEqualTo(expected);\n}",
-        "bad": "boolean result = escrowValidator.isExistDeliveryInfo(deliveryDto);"
+        "good": "public interface CertifyService {}\npublic class CertifyServiceImpl {}",
+        "bad": "public interface Certify {}"
       }
     },
     {
-      "id": "expected_variable_naming",
+      "id": "controller_naming",
       "category": "네이밍",
-      "subcategory": "변수",
-      "title": "기대값 변수 네이밍",
-      "rule": "기대 값에는 expected를 접미사(prefix)로 사용합니다.",
+      "subcategory": "클래스",
+      "title": "Controller 클래스 네이밍 규칙",
+      "rule": "Controller 클래스는 {클래스명}Controller{버전} 형태로 명명합니다. (버전은 옵셔널)",
       "examples": {
-        "good": "boolean expected = false;\nassertThat(actual).isEqualTo(expected);",
-        "bad": "boolean expectedValue = false;\nboolean expect = false;"
+        "good": "public class PaymentInfoController {}\npublic class PaymentInfoControllerV1 {}",
+        "bad": "public class PaymentInfo {}"
       }
     },
     {
-      "id": "display_name_annotation",
+      "id": "enum_naming",
+      "category": "네이밍",
+      "subcategory": "클래스",
+      "title": "Enum 클래스 네이밍 규칙",
+      "rule": "Enum 클래스는 {클래스명}Enum 형태로 명명합니다.",
+      "examples": {
+        "good": "public enum PayMethodEnum {}",
+        "bad": "public enum PayMethod {}"
+      }
+    },
+    {
+      "id": "method_naming",
+      "category": "네이밍",
+      "subcategory": "메소드",
+      "title": "메소드 네이밍 규칙",
+      "rule": "메소드명은 소문자로 시작하는 카멜케이스를 적용하고 동사, 전치사를 사용합니다.",
+      "examples": {
+        "good": "public void approve() {}",
+        "bad": "public void Approval() {}"
+      }
+    },
+    {
+      "id": "business_method_naming",
+      "category": "네이밍",
+      "subcategory": "메소드",
+      "title": "비즈니스 메소드 네이밍 규칙",
+      "rule": "비즈니스 패키지 내 코어 서비스에서는 메소드 네이밍을 행위에 대한 명확한 내용으로 작성합니다.",
+      "examples": {
+        "good": "public void savePayment() {}\npublic void updatePayment() {}",
+        "bad": "public void setPayment() {}"
+      }
+    },
+    {
+      "id": "wildcard_import_prohibition",
+      "category": "선언",
+      "subcategory": "import",
+      "title": "와일드카드 import 금지",
+      "rule": "import 구문에서 와일드카드(*) 사용을 금지합니다.",
+      "examples": {
+        "good": "import static org.mockito.Mockito.verify;\nimport static org.mockito.Mockito.verifyNoInteractions;",
+        "bad": "import static org.mockito.Mockito.*;"
+      }
+    },
+    {
+      "id": "mapper_annotation_order",
+      "category": "선언",
+      "subcategory": "Mapper",
+      "title": "@Mapping 속성 순서",
+      "rule": "@Mapping 어노테이션은 source, target 순으로 작성합니다.",
+      "examples": {
+        "good": "@Mapping(source = \"cancelAmount\", target = \"amount\")\n@Mapping(source = \"cancelDate\", target = \"transactionDate\")",
+        "bad": "@Mapping(target = \"amount\", source = \"cancelAmount\")"
+      }
+    },
+    {
+      "id": "autowired_prohibition",
       "category": "선언",
       "subcategory": "어노테이션",
-      "title": "DisplayName 어노테이션 사용",
-      "rule": "DisplayName을 사용하여 어떤 테스트 케이스인지 한글로 기재합니다. When ~ Expected 구조로 작성합니다.",
+      "title": "@Autowired 사용 지양",
+      "rule": "@Autowired 사용을 지양하고 @RequiredArgsConstructor나 생성자 주입을 사용합니다.",
       "examples": {
-        "good": "@DisplayName(\"에스크로 PG가 아닐 때, True를 return 한다.\")\n@Test\nvoid notEscrowPg() throws Exception {\n  /** Given **/\n  DeliveryDto deliveryDto = DeliveryDto.builder().build();\n  /** When **/\n  boolean actual = escrowValidator.isNotValidDeliveryDto(deliveryDto);\n  /** Then **/\n  assertThat(actual).isTrue();\n}",
-        "bad": "@Test\nvoid notEscrowPg() throws Exception {\n  // DisplayName 없이 테스트\n}"
+        "good": "@RequiredArgsConstructor\n@Service\npublic class CancelService {\n    private final PaymentInfoRepository paymentInfoRepository;\n}",
+        "bad": "@Service\npublic class CancelService {\n    @Autowired\n    private PaymentInfoRepository paymentInfoRepository;\n}"
       }
     },
     {
-      "id": "given_when_then_template",
-      "category": "그 외",
-      "subcategory": "템플릿",
-      "title": "Given-When-Then 템플릿",
-      "rule": "기본적으로 Given → When → Then 템플릿 구조를 따르지만 강제는 아니므로 축약해도 충분한 테스트라면 축약도 가능합니다.",
+      "id": "data_annotation_prohibition",
+      "category": "선언",
+      "subcategory": "어노테이션",
+      "title": "@Data 사용 지양",
+      "rule": "@Data 사용을 지양하고 필요한 어노테이션을 개별적으로 사용합니다.",
       "examples": {
-        "good": "@DisplayName(\"에스크로 PG가 아닐 때, True를 return 한다.\")\n@Test\nvoid notEscrowPg() throws Exception {\n  /** Given **/\n  DeliveryDto deliveryDto = DeliveryDto.builder().build();\n  /** When **/\n  boolean actual = escrowValidator.isNotValidDeliveryDto(deliveryDto);\n  /** Then **/\n  assertThat(actual).isTrue();\n}",
-        "bad": "// Given-When-Then 구조 없이 작성된 테스트"
+        "good": "@Getter\n@Setter\n@ToString\npublic class PaymentInfoDto {}",
+        "bad": "@Data\npublic class PaymentInfoDto {}"
       }
     },
     {
-      "id": "when_then_combined",
-      "category": "그 외",
-      "subcategory": "템플릿",
-      "title": "When & Then 결합",
-      "rule": "예외 발생 테스트 등에서는 When & Then을 결합하여 사용할 수 있습니다.",
+      "id": "constructor_annotation_prohibition",
+      "category": "선언",
+      "subcategory": "어노테이션",
+      "title": "@AllArgsConstructor/@RequiredArgsConstructor 사용 금지",
+      "rule": "DTO, VO, Entity에서는 해당 어노테이션 사용을 금지하고 IDE 자동생성을 사용합니다.",
       "examples": {
-        "good": "@DisplayName(\"적합하지 않은 PG일 경우 IllegalArgumentException 발생\")\n@Test\nvoid wrongPgKind() throws Exception {\n  /** When & Then **/\n  assertThatThrownBy(() -> {\n    escrowFactory.newInstanceByPgKind(PgKind.TOSS);\n  }).isInstanceOf(IllegalArgumentException.class).hasMessage(\"적합하지 않은 PG 입니다.\");\n  verify(slackService).sendFailMessage(anyString(), any(PgKind.class));\n}",
-        "bad": "// When과 Then을 분리하여 작성하여 복잡해진 예외 테스트"
+        "good": "public class PaymentInfoDto {\n    Long cancelAmount;\n    Long remainAmount;\n\n    public PaymentInfoDto(Long cancelAmount, Long remainAmount) {\n        this.cancelAmount = cancelAmount;\n        this.remainAmount = remainAmount;\n    }\n}",
+        "bad": "@AllArgsConstructor\npublic class PaymentInfoDto {\n    Long cancelAmount;\n    Long remainAmount;\n}"
       }
     },
     {
-      "id": "assertj_variable_order",
-      "category": "그 외",
-      "subcategory": "변수 순서",
-      "title": "AssertJ 변수 순서",
-      "rule": "AssertJ는 actual, expected 순으로 변수를 지정하기 때문에 이를 따릅니다.",
+      "id": "inline_processing_limitation",
+      "category": "메소드",
+      "subcategory": "inline",
+      "title": "inline 처리 제한",
+      "rule": "과도한 inline 처리를 지양하고 가독성을 위해 로컬 변수로 추출하여 사용합니다.",
       "examples": {
-        "good": "assertThat(actual).isEqualTo(expected);",
-        "bad": "assertThat(expected).isEqualTo(actual);"
+        "good": "String agreeToken = tokenService.createToken(ServiceCodeEnum.MEMBER_JOIN_AGREE, DurationTimeEnum.TEN_MIN, LimitCountEnum.UNLIMIT, new HashMap());\nmodelAndView.addObject(\"agreeToken\", agreeToken);",
+        "bad": "modelAndView.addObject(\"agreeToken\", tokenService.createToken(ServiceCodeEnum.MEMBER_JOIN_AGREE, DurationTimeEnum.TEN_MIN, LimitCountEnum.UNLIMIT, new HashMap()));"
       }
     },
     {
-      "id": "avoid_extracting",
-      "category": "그 외",
-      "subcategory": "extracting 미사용",
-      "title": "extracting 사용 지양",
-      "rule": "객체에서 필드를 뽑아서 비교하는 extracting 사용을 지양합니다. 문자열로 필드를 추출하기 때문에 실수할 소지가 있고, 가독성도 떨어집니다. 각 필드를 기본 assert문으로 비교합니다.",
+      "id": "number_variable_formatting",
+      "category": "변수",
+      "subcategory": "숫자 변수",
+      "title": "천 단위 숫자 구분",
+      "rule": "천 단위의 숫자는 언더바(_)로 구분합니다.",
       "examples": {
-        "good": "assertThat(actualResponse).isNotNull();\nassertThat(actualResponse.getServiceGroupCode()).isEqualTo(ServiceGroupCode.STORE_GLOBAL);\nassertThat(actualResponse.getPgKind()).isEqualTo(PgKind.EXIMBAY);\nassertThat(actualResponse.getPgMid()).isEqualTo(expectedResponse.getMid());",
-        "bad": "assertThat(actualResponse)\n  .extracting(\"serviceGroupCode\", \"pgKind\", \"pgMid\")\n  .containsExactly(\n    ServiceGroupCode.STORE_GLOBAL, PgKind.EXIMBAY, expectedResponse.getMid()\n  );"
+        "good": "long amount = 1_000_000L;",
+        "bad": "long amount = 1000000L;"
       }
     },
     {
-      "id": "model_factory_pattern",
-      "category": "그 외",
-      "subcategory": "fixture",
-      "title": "Model Factory 패턴",
-      "rule": "factory 클래스를 이용하여 중복 코드를 제거하고 재사용성을 높입니다. 테스트 디렉토리 최상위에 fixture.factory 패키지를 구성합니다.",
+      "id": "builder_pattern_usage",
+      "category": "객체",
+      "subcategory": "생성 방법론",
+      "title": "Builder 패턴 사용",
+      "rule": "객체 생성 시 Builder 패턴을 기본으로 사용하고, IDE를 통해 생성한 생성자 위에 Builder를 선언합니다.",
       "examples": {
-        "good": "public class PaymentInfoDtoBuilder {\n  private final PaymentInfoDto paymentInfoDto;\n  \n  private PaymentInfoDtoBuilder() {\n    paymentInfoDto = new PaymentInfoDto();\n    paymentInfoDto.setMemberUid(808080L);\n    paymentInfoDto.setTid(\"qKl56WYb7w4vZnjEJeQVxRaWZnkWb8PmOoBN0k12dzgRG9px\");\n  }\n  \n  public static PaymentInfoDtoBuilder builder() {\n    return new PaymentInfoDtoBuilder();\n  }\n  \n  public PaymentInfoDto build() {\n    return paymentInfoDto;\n  }\n  \n  public PaymentInfoDtoBuilder id(Long id) {\n    paymentInfoDto.setId(id);\n    return this;\n  }\n}",
-        "bad": "// 각 테스트마다 객체 생성 코드 중복"
+        "good": "public class EscrowDeliveryDto {\n    private ServiceGroupCode serviceGroupCode;\n    \n    @Builder\n    private EscrowDeliveryDto(ServiceGroupCode serviceGroupCode) {\n        this.serviceGroupCode = serviceGroupCode;\n    }\n}",
+        "bad": "@Builder\npublic class EscrowDeliveryDto {\n    private ServiceGroupCode serviceGroupCode;\n}"
       }
     },
     {
-      "id": "factory_usage",
-      "category": "그 외",
-      "subcategory": "fixture",
-      "title": "Factory 사용법",
-      "rule": "테스트 케이스별로 Builder().build()를 호출해서 Model을 생성합니다.",
+      "id": "code_vs_enum_usage",
+      "category": "객체",
+      "subcategory": "상수 변수 vs Enum",
+      "title": "Code vs Enum 사용 기준",
+      "rule": "값 하나만 사용할 경우 Code, 부가적인 데이터가 필요한 경우 Enum을 사용합니다.",
       "examples": {
-        "good": "PaymentInfoDto paymentInfo = PaymentInfoDtoBuilder.builder()\n  .id(12345L)\n  .build();",
-        "bad": "PaymentInfoDto paymentInfo = new PaymentInfoDto();\npaymentInfo.setMemberUid(808080L);\npaymentInfo.setTid(\"qKl56WYb7w4vZnjEJeQVxRaWZnkWb8PmOoBN0k12dzgRG9px\");\npaymentInfo.setId(12345L);"
+        "good": "// Code\npublic class CompanyCode {\n    public static final String COMPANY_NAME = \"테스트\";\n}\n\n// Enum\npublic enum PayKind {\n    CARD(\"CARD\", \"신용카드\"),\n    TRANSFER(\"TRANSFER\", \"실시간 계좌이체\")\n}",
+        "bad": "단일 값에 Enum 사용 또는 복합 데이터에 Code 사용"
+      }
+    },
+    {
+      "id": "this_keyword_usage",
+      "category": "this",
+      "subcategory": "",
+      "title": "this 키워드 사용 규칙",
+      "rule": "내부 멤버 변수/메소드 접근 시 this 사용을 기본으로 하되, Service 등 특정 Layer의 멤버변수나 static 메소드에는 사용하지 않습니다.",
+      "examples": {
+        "good": "public Long calRemainAmount() {\n    return this.amount - this.cancelAmount;\n}",
+        "bad": "static String getBirthDay(MemberLeaveDto memberLeaveDto) {\n    return this.getBirthDay(memberLeaveDto);\n}"
+      }
+    },
+    {
+      "id": "method_chaining_line_break",
+      "category": "줄바꿈",
+      "subcategory": "메소드",
+      "title": "연속된 메소드 호출 시 줄바꿈",
+      "rule": "연속된 메소드 호출의 경우 줄바꿈하고 1탭 들여쓰기합니다.",
+      "examples": {
+        "good": "given(escrowFactory.newInstanceByPgKind(deliveryDto.getPgKind()))\n    .willReturn(kcpEscrow);",
+        "bad": "given(escrowFactory.newInstanceByPgKind(deliveryDto.getPgKind())).willReturn(kcpEscrow);"
+      }
+    },
+    {
+      "id": "parameter_limit_dto_usage",
+      "category": "줄바꿈",
+      "subcategory": "파라미터",
+      "title": "파라미터 개수 제한",
+      "rule": "4개 이상 파라미터를 사용할 경우에는 DTO를 이용하여 사용합니다.",
+      "examples": {
+        "good": "public void processPayment(PaymentRequestDto request) {}",
+        "bad": "public void processPayment(String orderId, Long amount, String payMethod, String cardNumber, String expiryDate) {}"
+      }
+    },
+    {
+      "id": "array_bracket_position",
+      "category": "그외",
+      "subcategory": "",
+      "title": "배열 대괄호 위치",
+      "rule": "배열 대괄호는 타입 뒤에 선언합니다.",
+      "examples": {
+        "good": "String[] array;",
+        "bad": "String array[];"
+      }
+    },
+    {
+      "id": "modifier_order",
+      "category": "그외",
+      "subcategory": "",
+      "title": "지시자 순서",
+      "rule": "지시자는 다음 순으로 선언합니다: public protected private abstract static final transient volatile synchronized native strictfp",
+      "examples": {
+        "good": "public static final String CONSTANT = \"value\";",
+        "bad": "static public final String CONSTANT = \"value\";"
+      }
+    },
+    {
+      "id": "brace_placement",
+      "category": "그외",
+      "subcategory": "",
+      "title": "중괄호 배치 규칙",
+      "rule": "if문 같은 경우 닫힘 중괄호 바로 뒤에 else, catch, while 등을 선언합니다.",
+      "examples": {
+        "good": "if (index > 1) {\n    // code\n} else {\n    // code\n}",
+        "bad": "if (index > 1) {\n    // code\n}\nelse {\n    // code\n}"
+      }
+    },
+    {
+      "id": "mandatory_braces",
+      "category": "그외",
+      "subcategory": "",
+      "title": "조건/반복문 중괄호 필수",
+      "rule": "조건문과 반복문에 중괄호 사용이 필수입니다.",
+      "examples": {
+        "good": "if (index > 1) {\n    index++;\n}",
+        "bad": "if (index > 1)\n    index++;"
+      }
+    },
+    {
+      "id": "package_import_spacing",
+      "category": "그외",
+      "subcategory": "",
+      "title": "package 및 import 그룹 간격",
+      "rule": "package 및 import 그룹 선언 이후 빈줄을 추가합니다.",
+      "examples": {
+        "good": "package com.test.pay.support.constant.pg;\n\nimport static org.mockito.Mockito.verify;\n\nimport static org.mockito.ArgumentMatchers.any;",
+        "bad": "package com.test.pay.support.constant.pg;\nimport static org.mockito.Mockito.verify;\nimport static org.mockito.ArgumentMatchers.any;"
+      }
+    },
+    {
+      "id": "numeric_suffix_uppercase",
+      "category": "그외",
+      "subcategory": "",
+      "title": "숫자 접미사 대문자 사용",
+      "rule": "long, double, float은 마지막에 L, D, F 대문자를 붙입니다.",
+      "examples": {
+        "good": "long memberUid = 1L;\ndouble taxAmount = 1D;\nfloat vatAmount = 1F;",
+        "bad": "long memberUid = 1l;\ndouble taxAmount = 1d;\nfloat vatAmount = 1f;"
+      }
+    },
+    {
+      "id": "ternary_operator_spacing",
+      "category": "그외",
+      "subcategory": "",
+      "title": "삼항연산자 콜론 공백",
+      "rule": "삼항연산자의 콜론 앞뒤에 공백을 넣습니다.",
+      "examples": {
+        "good": "index > 10 ? \"a\" : \"b\";",
+        "bad": "index > 10?\"a\":\"b\";"
+      }
+    },
+    {
+      "id": "control_statement_spacing",
+      "category": "그외",
+      "subcategory": "",
+      "title": "제어문 소괄호 공백",
+      "rule": "if문 같은 제어문 뒤 소괄호 앞뒤에 공백을 넣습니다.",
+      "examples": {
+        "good": "if (index > 10) {\n    // code\n}",
+        "bad": "if(index > 10){\n    // code\n}"
+      }
+    },
+    {
+      "id": "entity_update_pattern",
+      "category": "그외",
+      "subcategory": "",
+      "title": "Entity 데이터 변경 패턴",
+      "rule": "Entity 데이터 변경 시 Entity → Dto 변환 → Dto 데이터 변경 → Entity 변환 → save() 형태로 진행합니다.",
+      "examples": {
+        "good": "UserPaymethodDto userPaymethodDto = // 변경된 데이터\nUserPaymethodEntity entity = EntityMapper.INSTANCE.toUserPaymethodEntity(userPaymethodDto);\nuserPaymethodMasterRepository.save(entity);",
+        "bad": "entity.setPgKind(PgKind.KCP);\nuserPaymethodMasterRepository.save(entity);"
       }
     }
-  ],
-  "metadata": {
-    "source": "테스트 코드 컨벤션",
-    "version": "Java Spring Boot",
-    "framework": "JUnit5 + Mockito + AssertJ",
-    "total_rules": 15,
-    "categories": [
-      "라이브러리",
-      "네이밍",
-      "선언",
-      "그 외"
-    ],
-    "subcategories": [
-      "사용 라이브러리",
-      "클래스",
-      "Inner Class",
-      "메소드명",
-      "변수",
-      "어노테이션",
-      "템플릿", 
-      "변수 순서",
-      "extracting 미사용",
-      "fixture"
-    ]
-  }
+  ]
 }
