@@ -423,6 +423,7 @@ class CodeLlamaReviewer:
                 }
             )
 
+            logger.info(f"ollama API response: {response}")
 
             if response.status_code != 200:
                 logger.error(f"=== API 호출 실패 상세 정보 ===")
