@@ -476,14 +476,14 @@ class CodeLlamaReviewer:
     def _get_convention_guide(self, code: str) -> str:
         try:
             # 1. 언어 감지
-            detected_language = self._detect_language(code)
-            logger.info(f"[Convention Guide] 감지된 언어: {detected_language}")
+            # detected_language = self._detect_language(code)
+            # logger.info(f"[Convention Guide] 감지된 언어: {detected_language}")
             
-            if detected_language not in ["java", "swift"]:
-                return "not applicable"
+            # if detected_language not in ["java", "swift"]:
+            #     return "not applicable"
 
             # 2. 해당 언어의 스타일 가이드 JSON 파일 로드
-            style_guide_path = f"src/style_guide/{detected_language}_style_rules.json"
+            style_guide_path = f"src/style_guide/swift_style_rules.json"
             try:
                 with open(style_guide_path, 'r', encoding='utf-8') as f:
                     style_guide = json.load(f)
@@ -493,7 +493,7 @@ class CodeLlamaReviewer:
 
             # 3. 해당 언어의 모든 컨벤션 가이드 수집
             guides = []
-            rules = style_guide[f"{detected_language}_style_guide_rules"]
+            rules = style_guide[f"swift_style_guide_rules"]
             for rule in rules:
                 guide = (
                     f"- [{rule['category']} > {rule['subcategory']}] {rule['title']}\n"
