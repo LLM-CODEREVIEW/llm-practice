@@ -496,7 +496,6 @@ class CodeLlamaReviewer:
             # 4. VectorDB 검색
             results = collection.query(
                 query_embeddings=[code_vec],
-                n_results=5,
                 include=["documents", "metadatas", "distances"]
             )
             
@@ -518,11 +517,11 @@ class CodeLlamaReviewer:
                 )
             
                 
-                if distance < 0.3:  # 유사도 임계값
+                if distance < 0.1:  # 유사도 임계값
                     convention_guides.append(f"- [{meta['category']}] {doc.strip()}")
                     logger.info(f"[Convention Guide] 규칙 추가됨 (거리: {distance})")
                 else:
-                    logger.info(f"[Convention Guide] 규칙 제외됨 (거리: {distance} > 0.3)")
+                    logger.info(f"[Convention Guide] 규칙 제외됨 (거리: {distance} > 0.1)")
 
             if not convention_guides:
                 logger.info("[Convention Guide] 적합한 컨벤션 가이드를 찾지 못했습니다.")
