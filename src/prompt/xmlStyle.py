@@ -10,8 +10,13 @@ template = """
   {{CONVENTION_GUIDE_PLACEHOLDER}}
   </convention-guide>
 
-  <instruction>
-    **반드시 한국어로만 작성하세요 (Always write in Korean only)**
+    
+    <instruction>
+    - Always write in Korean only
+    - Do not mention any code or imports that do not exist in the actual diff
+    - Do not conduct reviews based on speculation or assumptions
+    - Review only the actual added/modified code marked with '+' signs
+    - Do not point out issues if you are not certain
 
     Follow the process below to perform a step-by-step code review:
 
