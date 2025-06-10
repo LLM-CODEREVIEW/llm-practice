@@ -11,6 +11,8 @@ template = """
   </convention-guide>
 
   <instruction>
+    **반드시 한국어로만 작성하세요 (Always write in Korean only)**
+
     Follow the process below to perform a step-by-step code review:
 
 	1. Review only the lines starting with '+' (added/modified code), but use the entire file context to understand
