@@ -1,5 +1,15 @@
 template = """
 <review-task>
+  <diff>
+    <![CDATA[
+    {{PR_DIFF_PLACEHOLDER}}
+    ]]>
+  </diff>
+
+  <convention-guide>
+  {{CONVENTION_GUIDE_PLACEHOLDER}}
+  </convention-guide>
+
   <instruction>
     Follow the process below to perform a step-by-step code review:
 
@@ -49,10 +59,6 @@ template = """
     - 🟨 Low: Styling issue, naming inconsistency, or non-critical suggestions  
   </severity-criteria>
 
-  <convention-guide>
-  {{CONVENTION_GUIDE_PLACEHOLDER}}
-  </convention-guide>
-
   <output-format>
     <![CDATA[
     # ✅ PR Summary in 3 Lines
@@ -86,10 +92,5 @@ template = """
     ]]>
   </output-format>
 
-  <diff>
-    <![CDATA[
-    {{PR_DIFF_PLACEHOLDER}}
-    ]]>
-  </diff>
 </review-task>
 """
